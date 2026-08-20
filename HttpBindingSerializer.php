@@ -878,7 +878,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      *
      * For structure and union targets, the serializer passes the member's
      * serialization schema when present. Otherwise it uses the target shape's
-     * own schema through `$value::schema()`.
+     * own schema through `$value->getSchema()`.
      *
      * @param mixed $value Captured payload value.
      * @param Schema|null $serializationSchema Member schema with explicit
@@ -892,13 +892,13 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         switch ($this->bindingInfo->payloadSchema->type) {
             case ShapeType::Structure->value:
                 $serializer = $this->codec->createSerializer();
-                $payloadSchema = $serializationSchema ?? $value::schema();
+                $payloadSchema = $serializationSchema ?? $value->getSchema();
                 $serializer->serializeStruct($payloadSchema, $value, 0);
 
                 return $serializer->flush();
             case ShapeType::Union->value:
                 $serializer = $this->codec->createSerializer();
-                $payloadSchema = $serializationSchema ?? $value::schema();
+                $payloadSchema = $serializationSchema ?? $value->getSchema();
                 $serializer->serializeUnion($payloadSchema, $value, 0);
 
                 return $serializer->flush();

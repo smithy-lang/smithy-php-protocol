@@ -11,6 +11,7 @@ use Smithy\Core\Serde\ShapeDeserializerInterface;
 use Smithy\Core\Serde\ShapeType;
 use Smithy\Core\Serde\TimestampFormat;
 use Smithy\Core\Shape\Document\AbstractDocument;
+use Smithy\Core\Shape\Document\StructDocument;
 
 /**
  * Deserialize HTTP-bound response data into positional shape members.
@@ -186,7 +187,10 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
                         $members[$idx] = null;
                     } else {
                         $decoded = \json_decode($this->bodyContents(), true);
-                        $members[$idx] = AbstractDocument::fromValue($decoded);
+                        $members[$idx] = AbstractDocument::fromValue(
+                            $decoded,
+                            $payloadSchema
+                        );
                     }
                     break;
                 case ShapeType::Union->value:
@@ -198,9 +202,18 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
                 default:
                     $payloadMembers = $this->deserializePayload($payloadSchema);
                     $targetClass = $payloadSchema->targetClass;
-                    $members[$idx] = $payloadMembers && $targetClass
-                        ? $targetClass::fromMembers($payloadMembers)
-                        : $payloadMembers;
+                    if (!\is_array($payloadMembers)) {
+                        $members[$idx] = $payloadMembers;
+                    } elseif ($targetClass !== null) {
+                        $members[$idx] = $targetClass::fromMembers(
+                            $payloadMembers
+                        );
+                    } else {
+                        $members[$idx] = StructDocument::fromMembers(
+                            $payloadSchema,
+                            $payloadMembers
+                        );
+                    }
                     break;
 
             }
