@@ -28,8 +28,10 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * @var array<string, array{string, list<string>}>
      */
     private array $headers = [];
-    /** @var list<array{string, string}> query pairs [name, value] */
-    private array $queryPairs = [];
+    /**
+     * Encoded dynamic query string.
+     */
+    private string $queryString = '';
     /**
      * Formatted URI label values, keyed by member index.
      *
@@ -101,7 +103,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $strValue];
+                $this->writeQueryPair($w[1], $strValue);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -124,7 +126,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], (string) $value];
+                $this->writeQueryPair($w[1], (string) $value);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -147,7 +149,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], self::formatFloat($value)];
+                $this->writeQueryPair($w[1], self::formatFloat($value));
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -176,7 +178,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $value->value];
+                $this->writeQueryPair($w[1], $value->value);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -207,7 +209,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $value->value];
+                $this->writeQueryPair($w[1], $value->value);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -237,7 +239,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $value];
+                $this->writeQueryPair($w[1], $value);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -337,7 +339,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $formatted];
+                $this->writeQueryPair($w[1], $formatted);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -512,52 +514,38 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     }
 
     /**
-     * Build the query string from captured query pairs + static pairs.
+     * Append an encoded query name and raw value.
      *
-     * Names in {@see $queryPairs} are pre-encoded. Values are encoded here.
-     *
-     * @param list<array{string, string}>|null $staticPairs Static query pairs.
-     *
-     * @return string The encoded query string (empty string if no pairs)
+     * @return void
      */
-    public function serializeQueryString(?array $staticPairs = null): string
+    public function writeQueryPair(string $name, string $value): void
     {
-        $pairs = $this->queryPairs;
-        if ($pairs === []) {
-            if ($staticPairs === null || $staticPairs === []) {
+        $fragment = $name . '=' . \rawurlencode($value);
+        if ($this->queryString === '') {
+            $this->queryString = $fragment;
 
-                return '';
-            }
-
-            $first = $staticPairs[0];
-            $qs = $first[0] . '=' . \rawurlencode($first[1]);
-            $count = \count($staticPairs);
-            for ($i = 1; $i < $count; $i++) {
-                $pair = $staticPairs[$i];
-                $qs .= '&' . $pair[0] . '=' . \rawurlencode($pair[1]);
-            }
-
-            return $qs;
+            return;
         }
 
-        $first = $pairs[0];
-        $qs = $first[0] . '=' . \rawurlencode($first[1]);
-        $count = \count($pairs);
-        for ($i = 1; $i < $count; $i++) {
-            $pair = $pairs[$i];
-            $qs .= '&' . $pair[0] . '=' . \rawurlencode($pair[1]);
+        $this->queryString .= '&' . $fragment;
+    }
+
+    /**
+     * Build the query string from dynamic and static query fragments.
+     */
+    public function serializeQueryString(?string $staticQuery = null): string
+    {
+        if ($this->queryString === '') {
+
+            return $staticQuery ?? '';
         }
 
-        if ($staticPairs === null || $staticPairs === []) {
+        if ($staticQuery === null || $staticQuery === '') {
 
-            return $qs;
+            return $this->queryString;
         }
 
-        foreach ($staticPairs as $pair) {
-            $qs .= '&' . $pair[0] . '=' . \rawurlencode($pair[1]);
-        }
-
-        return $qs;
+        return $this->queryString . '&' . $staticQuery;
     }
 
     /**
@@ -661,7 +649,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->queryPairs[] = [$w[1], $value];
+                $this->writeQueryPair($w[1], $value);
 
                 return;
             case HttpStructBindingExtension::ROUTE_LABEL:
@@ -756,23 +744,26 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
             ) {
                 case TimestampFormat::DateTime->value:
                     foreach ($list as $v) {
-                        $this->queryPairs[] = [
+                        $this->writeQueryPair(
                             $name,
                             \gmdate(TimestampFormat::FMT_DATE_TIME, (int) $v)
-                        ];
+                        );
                     }
                     break;
                 case TimestampFormat::HttpDate->value:
                     foreach ($list as $v) {
-                        $this->queryPairs[] = [
+                        $this->writeQueryPair(
                             $name,
                             \gmdate(TimestampFormat::FMT_HTTP_DATE, (int) $v)
-                        ];
+                        );
                     }
                     break;
                 default: // TimestampFormat::EpochSeconds
                     foreach ($list as $v) {
-                        $this->queryPairs[] = [$name, (string) ($v + 0)];
+                        $this->writeQueryPair(
+                            $name,
+                            (string) ($v + 0)
+                        );
                     }
                     break;
             }
@@ -783,16 +774,19 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         foreach ($list as $v) {
             switch ($type) {
                 case ShapeType::Boolean->value:
-                    $this->queryPairs[] = [$name, $v ? 'true' : 'false'];
+                    $this->writeQueryPair(
+                        $name,
+                        $v ? 'true' : 'false'
+                    );
                     break;
                 case ShapeType::Enum->value:
-                    $this->queryPairs[] = [$name, $v->value];
+                    $this->writeQueryPair($name, $v->value);
                     break;
                 case ShapeType::IntEnum->value:
-                    $this->queryPairs[] = [$name, (string) $v->value];
+                    $this->writeQueryPair($name, (string) $v->value);
                     break;
                 default:
-                    $this->queryPairs[] = [$name, (string) $v];
+                    $this->writeQueryPair($name, (string) $v);
                     break;
             }
         }
@@ -853,17 +847,17 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         foreach ($map as $k => $v) {
             // Conflict check uses the raw key (httpQueryNames is keyed by the
             // unencoded @httpQuery wire name). Encode once per key after the
-            // check passes so serializeQueryString can append it as-is.
+            // check passes so writeQueryPair can append it as-is.
             if (isset($this->httpQueryNames[$k])) {
                 continue;
             }
             $encodedKey = \rawurlencode($k);
             if (\is_array($v)) {
                 foreach ($v as $item) {
-                    $this->queryPairs[] = [$encodedKey, (string) $item];
+                    $this->writeQueryPair($encodedKey, (string) $item);
                 }
             } else {
-                $this->queryPairs[] = [$encodedKey, (string) $v];
+                $this->writeQueryPair($encodedKey, (string) $v);
             }
         }
     }

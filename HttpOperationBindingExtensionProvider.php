@@ -42,11 +42,22 @@ final class HttpOperationBindingExtensionProvider implements SchemaExtensionProv
             $path = \substr($uri, 0, $qmark);
         }
 
+        $pathQueryString = $http['pathQueryString'] ?? null;
+        if ($pathQueryString === null
+            && isset($http['pathQueryPairs'])
+        ) {
+            $fragments = [];
+            foreach ($http['pathQueryPairs'] as $pair) {
+                $fragments[] = $pair[0] . '=' . $pair[1];
+            }
+            $pathQueryString = \implode('&', $fragments);
+        }
+
         return new HttpOperationBindingExtension(
             method: (string) ($http['method'] ?? 'POST'),
             path: $path,
             pathSegments: $http['pathSegments'] ?? null,
-            pathQueryPairs: $http['pathQueryPairs'] ?? null,
+            pathQueryString: $pathQueryString,
             httpResponseCode: isset($http['code']) ? (int) $http['code'] : null
         );
     }

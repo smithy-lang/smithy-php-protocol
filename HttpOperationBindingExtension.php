@@ -30,14 +30,9 @@ final class HttpOperationBindingExtension
          */
         public readonly ?array $pathSegments = null,
         /**
-         * Precomputed static query pairs from the `@http` URI's query literal.
-         *
-         * Each pair is `[encodedName, encodedValue]`.
-         * Use null when the operation has no static query literal.
-         *
-         * @var list<array{string, string}>|null
+         * Precomputed static query string from the `@http` URI.
          */
-        public readonly ?array $pathQueryPairs = null,
+        public readonly ?string $pathQueryString = null,
         /**
          * HTTP response status code from the `@http` trait's `code` field.
          */
