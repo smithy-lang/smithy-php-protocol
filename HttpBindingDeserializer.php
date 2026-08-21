@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Smithy\Protocol;
 
 use Psr\Http\Message\StreamInterface;
-use Smithy\Core\Serde\AbstractCodec;
+use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\Schema;
 use Smithy\Core\Serde\ShapeDeserializerInterface;
-use Smithy\Core\Serde\ShapeType;
+use Smithy\Core\Shape\ShapeType;
 use Smithy\Core\Serde\TimestampFormat;
 use Smithy\Core\Shape\Document\AbstractDocument;
 use Smithy\Core\Shape\Document\StructDocument;

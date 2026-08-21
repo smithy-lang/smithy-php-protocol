@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Smithy\Protocol;
 
 use Psr\Http\Message\StreamInterface;
-use Smithy\Core\Serde\AbstractCodec;
+use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\Schema;
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Serde\ShapeSerializerInterface;
-use Smithy\Core\Serde\ShapeType;
+use Smithy\Core\Shape\ShapeType;
 use Smithy\Core\Serde\TimestampFormat;
 use Smithy\Core\Shape\BigDecimal;
 use Smithy\Core\Shape\BigInteger;

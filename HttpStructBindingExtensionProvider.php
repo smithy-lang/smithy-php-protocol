@@ -7,7 +7,7 @@ namespace Smithy\Protocol;
 use Smithy\Core\Serde\Schema;
 use Smithy\Core\Serde\SchemaExtensionKey;
 use Smithy\Core\Serde\SchemaExtensionProviderInterface;
-use Smithy\Core\Serde\ShapeType;
+use Smithy\Core\Shape\ShapeType;
 use Smithy\Core\Serde\TimestampFormat;
 
 /**
