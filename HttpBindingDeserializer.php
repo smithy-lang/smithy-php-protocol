@@ -218,12 +218,15 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
 
             }
         } else {
-            if (!$this->bodyHasContent()) {
+            $body = $this->body;
+            if ($body === null || !$this->bodyHasContent()) {
                 return;
             }
 
-            $this->payloadCodec->createDeserializer($this->bodyContents())
-                ->deserialize($bindingInfo->bodySchema ?? $schema, $members);
+            $this->payloadCodec->createDeserializer($body)->deserialize(
+                $bindingInfo->bodySchema ?? $schema,
+                $members
+            );
         }
     }
 
@@ -232,7 +235,8 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
      */
     private function deserializePayload(Schema $schema): mixed
     {
-        if (!$this->bodyHasContent()) {
+        $body = $this->body;
+        if ($body === null || !$this->bodyHasContent()) {
             return null;
         }
 
@@ -240,8 +244,10 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
         $payloadMembers = $memberCount > 0
             ? \array_fill(0, $memberCount, null)
             : [];
-        $this->payloadCodec->createDeserializer($this->bodyContents())
-            ->deserialize($schema, $payloadMembers);
+        $this->payloadCodec->createDeserializer($body)->deserialize(
+            $schema,
+            $payloadMembers
+        );
 
         return $payloadMembers;
     }
@@ -256,14 +262,7 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
             return $this->bodySize > 0;
         }
 
-        $size = $this->body->getSize();
-        if ($size !== null) {
-            $this->bodySize = $size;
-
-            return $size > 0;
-        }
-
-        return $this->bodyContents() !== '';
+        return true;
     }
 
     private function bodyContents(): string
