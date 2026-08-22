@@ -461,25 +461,34 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
     }
 
     /**
-     * Parse a list-valued enum or intEnum header into typed instances.
+     * Parse a list-valued enum or intEnum header.
      *
      * @param list<string> $values Raw header values.
-     * @param class-string $class FQCN of the target enum class.
+     * @param class-string|null $class FQCN of the target enum class.
      * @param bool $isIntEnum True for IntEnum (parse items as int first)
      *
-     * @return list<object>
+     * @return list<object|string|int>
      */
-    private function parseEnumList(array $values, string $class, bool $isIntEnum): array
-    {
+    private function parseEnumList(
+        array $values,
+        ?string $class,
+        bool $isIntEnum
+    ): array {
         $items = \count($values) > 1 ? $values : \explode(',', $values[0]);
         $result = [];
         if ($isIntEnum) {
             foreach ($items as $v) {
-                $result[] = $class::fromValue((int) \trim($v));
+                $value = (int) \trim($v);
+                $result[] = $class !== null
+                    ? $class::fromValue($value)
+                    : $value;
             }
         } else {
             foreach ($items as $v) {
-                $result[] = $class::fromValue(\trim($v));
+                $value = \trim($v);
+                $result[] = $class !== null
+                    ? $class::fromValue($value)
+                    : $value;
             }
         }
 

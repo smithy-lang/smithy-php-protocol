@@ -689,11 +689,16 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
                     }
                 );
             case ShapeType::Enum->value:
-                return self::joinList($list, static fn($v) => $v->value);
+                return self::joinList(
+                    $list,
+                    static fn($v) => \is_string($v) ? $v : $v->value
+                );
             case ShapeType::IntEnum->value:
                 return self::joinList(
                     $list,
-                    static fn($v) => (string) $v->value
+                    static fn($v) => (string) (
+                        \is_int($v) ? $v : $v->value
+                    )
                 );
             case ShapeType::String_->value:
                 return self::joinList(
@@ -780,10 +785,16 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
                     );
                     break;
                 case ShapeType::Enum->value:
-                    $this->writeQueryPair($name, $v->value);
+                    $this->writeQueryPair(
+                        $name,
+                        \is_string($v) ? $v : $v->value
+                    );
                     break;
                 case ShapeType::IntEnum->value:
-                    $this->writeQueryPair($name, (string) $v->value);
+                    $this->writeQueryPair(
+                        $name,
+                        (string) (\is_int($v) ? $v : $v->value)
+                    );
                     break;
                 default:
                     $this->writeQueryPair($name, (string) $v);
