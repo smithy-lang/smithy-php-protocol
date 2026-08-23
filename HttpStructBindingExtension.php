@@ -68,10 +68,6 @@ final class HttpStructBindingExtension
         /** `@mediaType` trait value from the `@httpPayload` member. */
         public readonly ?string $payloadMediaType = null,
         /**
-         * Schema to use when serializing a structure or union `@httpPayload`.
-         */
-        public readonly ?Schema $payloadSerializationSchema = null,
-        /**
          * Request timestamp format kind, keyed by member index.
          *
          * Values use the backed integer from {@see TimestampFormat}.

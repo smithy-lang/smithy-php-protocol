@@ -555,17 +555,15 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         if ($this->hasPayload) {
 
-            return $this->buildPayload(
-                $this->payload,
-                $this->bindingInfo->payloadSerializationSchema
-            );
+            return $this->buildPayload($this->payload);
         }
 
         $payloadSchema = $this->bindingInfo->payloadSchema;
-        if ($payloadSchema !== null
-            && ($payloadSchema->type === ShapeType::Structure->value
-                || $payloadSchema->type === ShapeType::Union->value)
-        ) {
+        if ($payloadSchema?->type === ShapeType::Union->value) {
+            return '';
+        }
+
+        if ($payloadSchema?->type === ShapeType::Structure->value) {
             $serializer = $this->codec->createSerializer();
             $serializer->beginStruct($payloadSchema, 0);
             $serializer->endStruct();
@@ -743,9 +741,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $type = $memberType;
 
         if ($type === ShapeType::Timestamp->value) {
-            switch (
-                $this->listTimestampKinds[$idx]
-                    ?? TimestampFormat::DateTime->value
+            switch ($this->listTimestampKinds[$idx]
+                ?? TimestampFormat::DateTime->value
             ) {
                 case TimestampFormat::DateTime->value:
                     foreach ($list as $v) {
@@ -881,29 +878,19 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * structure, or union shapes. The default arm coerces other values to
      * strings defensively.
      *
-     * For structure and union targets, the serializer passes the member's
-     * serialization schema when present. Otherwise it uses the target shape's
-     * own schema through `$value->getSchema()`.
-     *
      * @param mixed $value Captured payload value.
-     * @param Schema|null $serializationSchema Member schema with explicit
-     *     serialization traits.
      */
-    private function buildPayload(
-        mixed $value,
-        ?Schema $serializationSchema
-    ): string|StreamInterface
+    private function buildPayload(mixed $value): string|StreamInterface
     {
-        switch ($this->bindingInfo->payloadSchema->type) {
+        $payloadSchema = $this->bindingInfo->payloadSchema;
+        switch ($payloadSchema->type) {
             case ShapeType::Structure->value:
                 $serializer = $this->codec->createSerializer();
-                $payloadSchema = $serializationSchema ?? $value->getSchema();
                 $serializer->serializeStruct($payloadSchema, $value, 0);
 
                 return $serializer->flush();
             case ShapeType::Union->value:
                 $serializer = $this->codec->createSerializer();
-                $payloadSchema = $serializationSchema ?? $value->getSchema();
                 $serializer->serializeUnion($payloadSchema, $value, 0);
 
                 return $serializer->flush();
@@ -917,7 +904,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
                 // values keep their type context during rendering.
                 $serializer = $this->codec->createSerializer();
                 $serializer->serializeDocument(
-                    $serializationSchema ?? $this->bindingInfo->payloadSchema,
+                    $payloadSchema,
                     $value,
                     0
                 );

@@ -47,7 +47,6 @@ final class HttpStructBindingExtensionProvider implements SchemaExtensionProvide
         $bodyMemberIndices = [];
         $payloadSchema = null;
         $payloadMediaType = null;
-        $payloadSerializationSchema = null;
         $requestTimestampKinds = [];
         $idempotencyTokenMemberIndex = null;
 
@@ -215,9 +214,6 @@ final class HttpStructBindingExtensionProvider implements SchemaExtensionProvide
                 $payloadSchema = $member;
                 $payloadMemberIndex = $idx;
                 $payloadMediaType = $member->getTrait(Schema::T_MEDIA_TYPE);
-                if ($member->hasTrait(Schema::T_XML_NAME)) {
-                    $payloadSerializationSchema = $member;
-                }
             } elseif ($member->hasTrait(Schema::T_HTTP_RESPONSE_CODE)) {
                 $memberRoutes[$idx] =
                     HttpStructBindingExtension::ROUTE_RESPONSE_CODE;
@@ -250,7 +246,6 @@ final class HttpStructBindingExtensionProvider implements SchemaExtensionProvide
                 : null,
             payloadSchema: $payloadSchema,
             payloadMediaType: $payloadMediaType,
-            payloadSerializationSchema: $payloadSerializationSchema,
             requestTimestampKinds: $requestTimestampKinds,
             idempotencyTokenMemberIndex: $idempotencyTokenMemberIndex,
             responseHeaders: $responseHeaders,
