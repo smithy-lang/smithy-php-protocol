@@ -262,7 +262,9 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
             return $this->bodySize > 0;
         }
 
-        return true;
+        $bodySize = $this->body->getSize();
+
+        return $bodySize === null || $bodySize > 0;
     }
 
     private function bodyContents(): string
@@ -507,9 +509,11 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
     {
         $map = [];
         foreach ($this->headers as $lower => $entry) {
-            if (\str_starts_with($lower, $lowerPrefix)) {
-                $map[\substr($entry[0], $prefixLen)] = $entry[1][0];
+            if (!\str_starts_with($lower, $lowerPrefix)) {
+                continue;
             }
+
+            $map[\substr($entry[0], $prefixLen)] = $entry[1][0];
         }
 
         return $map;
