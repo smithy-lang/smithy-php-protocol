@@ -23,6 +23,9 @@ final class HttpStructBindingExtension
     public const ROUTE_QUERY_PARAMS = 6;
     public const ROUTE_RESPONSE_CODE = 7;
 
+    /**
+     * @internal
+     */
     public function __construct(
         /**
          * Flat routing table: memberIndex => ROUTE_* constant.

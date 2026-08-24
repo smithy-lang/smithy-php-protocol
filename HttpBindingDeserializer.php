@@ -35,6 +35,9 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
     private ?string $bodyContents = null;
     private readonly int $statusCode;
 
+    /**
+     * @param array<string, array{string, list<string>}> $headers
+     */
     public function __construct(
         private readonly AbstractCodec $payloadCodec,
         private readonly HttpStructBindingExtension $bindingInfo,
@@ -155,8 +158,8 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
         }
 
         if ($bindingInfo->prefixHeaderDeserMembers !== []) {
-            foreach (
-                $bindingInfo->prefixHeaderDeserMembers as $idx => $prefix
+            foreach ($bindingInfo->prefixHeaderDeserMembers
+                as $idx => $prefix
             ) {
                 $members[$idx] = $this->parsePrefixHeaders(
                     $prefix[0],
@@ -262,7 +265,9 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
             return $this->bodySize > 0;
         }
 
-        return true;
+        $bodySize = $this->body->getSize();
+
+        return $bodySize === null || $bodySize > 0;
     }
 
     private function bodyContents(): string
@@ -507,9 +512,11 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
     {
         $map = [];
         foreach ($this->headers as $lower => $entry) {
-            if (\str_starts_with($lower, $lowerPrefix)) {
-                $map[\substr($entry[0], $prefixLen)] = $entry[1][0];
+            if (!\str_starts_with($lower, $lowerPrefix)) {
+                continue;
             }
+
+            $map[\substr($entry[0], $prefixLen)] = $entry[1][0];
         }
 
         return $map;

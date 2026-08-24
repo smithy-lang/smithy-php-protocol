@@ -15,7 +15,8 @@ use Smithy\Core\Serde\TimestampFormat;
  *
  * @internal Runtime metadata provider for HTTP-bound structure schemas.
  */
-final class HttpStructBindingExtensionProvider implements SchemaExtensionProviderInterface
+final class HttpStructBindingExtensionProvider
+    implements SchemaExtensionProviderInterface
 {
     /**
      * Singleton extension key.
@@ -30,6 +31,9 @@ final class HttpStructBindingExtensionProvider implements SchemaExtensionProvide
         return self::$KEY ??= new SchemaExtensionKey(new self());
     }
 
+    /**
+     * Provide HTTP binding metadata for a structure or union schema.
+     */
     public function provide(Schema $schema): ?HttpStructBindingExtension
     {
         if ($schema->type !== ShapeType::Structure->value

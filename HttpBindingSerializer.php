@@ -77,6 +77,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      */
     private readonly array $httpQueryNames;
 
+    /**
+     * Create an HTTP binding serializer.
+     */
     public function __construct(
         private readonly AbstractCodec $codec,
         private readonly HttpStructBindingExtension $bindingInfo
@@ -93,6 +96,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeBoolean(Schema $schema, bool $value, int $idx): void
     {
         $strValue = $value ? 'true' : 'false';
@@ -117,6 +121,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeInteger(Schema $schema, int $value, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -140,6 +145,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeFloat(Schema $schema, float $value, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -163,6 +169,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeBigInteger(
         Schema $schema,
         BigInteger $value,
@@ -196,6 +203,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeBigDecimal(
         Schema $schema,
         BigDecimal $value,
@@ -227,6 +235,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeString(Schema $schema, string $value, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -258,6 +267,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeBlob(
         Schema $schema,
         string|StreamInterface $value,
@@ -298,6 +308,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         );
     }
 
+    /** @inheritDoc */
     public function serializeTimestamp(
         Schema $schema,
         float $value,
@@ -349,6 +360,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeList(Schema $schema, array $list, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -373,6 +385,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeMap(Schema $schema, array $map, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -387,6 +400,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         };
     }
 
+    /** @inheritDoc */
     public function serializeStruct(
         Schema $schema,
         SerializableStructInterface $struct,
@@ -430,6 +444,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $this->codecSerializer?->endStruct();
     }
 
+    /** @inheritDoc */
     public function serializeUnion(Schema $schema, mixed $union, int $idx): void
     {
         $w = $this->writeInfo[$idx];
@@ -445,6 +460,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /** @inheritDoc */
     public function serializeDocument(
         Schema $schema,
         ?DocumentInterface $value,
@@ -632,6 +648,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * that `serializeString` performs because a token-bound string with
      * `@mediaType` is invalid Smithy modeling and we shouldn't apply that
      * encoding to the generated UUID.
+     *
+     * @return void
      */
     public function writeIdempotencyToken(
         int $idx,
