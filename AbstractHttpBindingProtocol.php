@@ -11,7 +11,7 @@ use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\Schema;
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Shape\OperationInterface;
-use Smithy\Http\Message\BodyStreamInterface;
+use Smithy\Http\Message\RequestStreamInterface;
 use Smithy\Http\Message\Request;
 use Smithy\Protocol\Exception\ProtocolException;
 use Smithy\Protocol\Utils\ComponentUri;
@@ -128,7 +128,7 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
             if (!isset($headers[self::HEADER_CONTENT_LENGTH])) {
                 if (\is_string($body)) {
                     $length = \strlen($body);
-                } elseif ($body instanceof BodyStreamInterface) {
+                } elseif ($body instanceof RequestStreamInterface) {
                     $length = $body->length();
                 } else {
                     $length = $body->getSize();
