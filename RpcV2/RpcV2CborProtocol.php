@@ -17,6 +17,8 @@ use Smithy\Core\Serde\TimestampFormat;
  */
 final class RpcV2CborProtocol extends AbstractRpcV2Protocol
 {
+    public const ID = 'smithy.protocols#rpcv2Cbor';
+
     /**
      * @var string Smithy-Protocol header value for RPC v2 CBOR.
      */
@@ -40,5 +42,13 @@ final class RpcV2CborProtocol extends AbstractRpcV2Protocol
             $codec,
             new RpcV2ErrorDeserializer($codec, static::$protocolHeaderValue)
         );
+    }
+
+    /**
+     * Return the Smithy protocol trait shape ID.
+     */
+    public function getId(): string
+    {
+        return self::ID;
     }
 }

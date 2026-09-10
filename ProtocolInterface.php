@@ -20,6 +20,11 @@ use Smithy\Core\Shape\OperationInterface;
 interface ProtocolInterface
 {
     /**
+     * Return the Smithy protocol trait shape ID.
+     */
+    public function getId(): string;
+
+    /**
      * Serialize an operation input into an HTTP request.
      *
      * @param OperationInterface $operation The operation singleton.

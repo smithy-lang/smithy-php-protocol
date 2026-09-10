@@ -201,24 +201,38 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
     private function buildWireInfo(OperationInterface $operation): array
     {
         $target = $operation->getRequestTarget();
-        if ($target === null) {
-            throw new ProtocolException(
-                'RPC v2 operations require a request target.'
-            );
-        }
-        $dot = \strrpos($target, '.');
-        if ($dot === false) {
-            throw new ProtocolException(
-                'RPC v2 request targets must use the '
-                    . '"<Service>.<Operation>" form.'
-            );
-        }
+        if ($target !== null) {
+            $separator = \strrpos($target, '.');
+            if ($separator === false
+                || $separator === 0
+                || $separator === \strlen($target) - 1
+            ) {
+                throw new ProtocolException(
+                    'RPC v2 request targets must use the '
+                        . '"<Service>.<Operation>" form.'
+                );
+            }
 
-        $serviceName = \substr($target, 0, $dot);
-        $operationName = \substr($target, $dot + 1);
+            $serviceName = \substr($target, 0, $separator);
+            $operationName = \substr($target, $separator + 1);
+        } else {
+            $serviceId = $operation->getServiceId();
+            if ($serviceId === null) {
+                throw new ProtocolException(
+                    'RPC v2 operations require a request target or '
+                        . 'service shape ID.'
+                );
+            }
+            $separator = \strrpos($serviceId, '#');
+            $serviceName = $separator === false
+                ? $serviceId
+                : \substr($serviceId, $separator + 1);
+            $operationName = $operation->getName();
+        }
 
         return [
-            '/service/' . $serviceName . '/operation/' . $operationName,
+            '/service/' . $serviceName . '/operation/'
+                . $operationName,
             $operation->getInputSchema()->resolveTarget()->id
                 === self::UNIT_SHAPE_ID,
             $operation->getOutputSchema()->resolveTarget()->id
