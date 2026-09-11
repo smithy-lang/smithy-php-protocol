@@ -6,10 +6,12 @@ namespace Smithy\Protocol\RpcV2;
 
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Smithy\Client\Endpoint\Endpoint;
 use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Shape\OperationInterface;
 use Smithy\Http\Message\Request;
+use Smithy\Http\Message\Uri;
 use Smithy\Protocol\Exception\ProtocolException;
 use Smithy\Protocol\HttpErrorDeserializer;
 use Smithy\Protocol\ProtocolInterface;
@@ -122,7 +124,7 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
         }
 
         $uri = new ComponentUri(
-            scheme: $ep['scheme'] ?? 'https',
+            scheme: isset($ep['host']) ? ($ep['scheme'] ?? 'https') : '',
             host: $ep['host'] ?? '',
             port: $ep['port'] ?? null,
             path: $path
@@ -133,6 +135,27 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
             $uri,
             $headers,
             $body
+        );
+    }
+
+    public function setServiceEndpoint(
+        RequestInterface $request,
+        Endpoint $endpoint
+    ): RequestInterface
+    {
+        $endpointUri = new Uri($endpoint->url);
+        $requestUri = $request->getUri();
+        $endpointPath = $endpointUri->getPath();
+        $path = $endpointPath !== '' && $endpointPath !== '/'
+            ? \rtrim($endpointPath, '/') . $requestUri->getPath()
+            : $requestUri->getPath();
+
+        return $request->withUri(
+            $endpointUri
+                ->withPath($path)
+                ->withQuery($requestUri->getQuery())
+                ->withFragment('')
+                ->withUserInfo('')
         );
     }
 

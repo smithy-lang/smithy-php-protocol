@@ -6,6 +6,7 @@ namespace Smithy\Protocol;
 
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Smithy\Client\Endpoint\Endpoint;
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Shape\OperationInterface;
 
@@ -29,7 +30,8 @@ interface ProtocolInterface
      *
      * @param OperationInterface $operation The operation singleton.
      * @param SerializableStructInterface $input The input shape.
-     * @param string $endpoint The base endpoint URL.
+     * @param string $endpoint The base endpoint URL, or `/` to create an
+     *                         operation-relative request for later binding.
      *
      * @return RequestInterface The serialized HTTP request.
      */
@@ -37,6 +39,14 @@ interface ProtocolInterface
         OperationInterface $operation,
         SerializableStructInterface $input,
         string $endpoint
+    ): RequestInterface;
+
+    /**
+     * Bind a resolved service endpoint to an operation-relative request.
+     */
+    public function setServiceEndpoint(
+        RequestInterface $request,
+        Endpoint $endpoint
     ): RequestInterface;
 
     /**

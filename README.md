@@ -17,7 +17,12 @@ composer require smithy/protocol
 $request = $protocol->serializeRequest(
     $operation,
     $input,
-    'https://service.example',
+    '/',
+);
+
+$request = $protocol->setServiceEndpoint(
+    $request,
+    $endpoint,
 );
 
 $output = $protocol->deserializeResponse(
@@ -25,6 +30,9 @@ $output = $protocol->deserializeResponse(
     $response,
 );
 ```
+
+Clients serialize an operation-relative request once before the retry loop.
+Each request attempt resolves and binds its service endpoint before signing.
 
 Operations supply input, output, error, and HTTP metadata through runtime
 schemas. Protocol implementations use codecs for body encoding.
