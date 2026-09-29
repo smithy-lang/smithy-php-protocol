@@ -76,6 +76,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * @var array<string, true>
      */
     private readonly array $httpQueryNames;
+    /** @var array<string, true> */
+    private readonly array $headerWireNames;
 
     /**
      * Create an HTTP binding serializer.
@@ -89,6 +91,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $this->requestTimestampKinds = $bindingInfo->requestTimestampKinds;
         $this->listTimestampKinds = $bindingInfo->listTimestampKinds;
         $this->httpQueryNames = $bindingInfo->httpQueryNames;
+        $this->headerWireNames = $bindingInfo->headerWireNames;
 
         if ($bindingInfo->bodyMemberIndices !== []) {
             $this->codecSerializer = $this->codec->createSerializer();
@@ -864,6 +867,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         foreach ($map as $k => $v) {
             $name = $prefix . $k;
+            if (isset($this->headerWireNames[\strtolower($name)])) {
+                continue;
+            }
             $this->headers[$name] = [$name, [(string) $v]];
         }
     }

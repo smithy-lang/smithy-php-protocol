@@ -21,6 +21,23 @@ use Smithy\Core\Shape\Document\StructDocument;
 final class HttpBindingDeserializer implements ShapeDeserializerInterface
 {
     private const RESPONSE_HEADER_SCALAR = 0;
+    private const PREFIX_HEADER_EXCLUSIONS = [
+        'authorization' => true,
+        'connection' => true,
+        'content-length' => true,
+        'expect' => true,
+        'host' => true,
+        'max-forwards' => true,
+        'proxy-authenticate' => true,
+        'server' => true,
+        'te' => true,
+        'trailer' => true,
+        'transfer-encoding' => true,
+        'upgrade' => true,
+        'user-agent' => true,
+        'www-authenticate' => true,
+        'x-forwarded-for' => true
+    ];
 
     /** @var array<string, array<int, mixed>> */
     private readonly array $headerBindingLookup;
@@ -222,12 +239,16 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
             }
         } else {
             $body = $this->body;
-            if ($body === null || !$this->bodyHasContent()) {
+            $bodySchema = $bindingInfo->responseBodySchema;
+            if ($bodySchema === null
+                || $body === null
+                || !$this->bodyHasContent()
+            ) {
                 return;
             }
 
             $this->payloadCodec->createDeserializer($body)->deserialize(
-                $bindingInfo->bodySchema ?? $schema,
+                $bodySchema,
                 $members
             );
         }
@@ -513,6 +534,9 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
         $map = [];
         foreach ($this->headers as $lower => $entry) {
             if (!\str_starts_with($lower, $lowerPrefix)) {
+                continue;
+            }
+            if (isset(self::PREFIX_HEADER_EXCLUSIONS[$lower])) {
                 continue;
             }
 

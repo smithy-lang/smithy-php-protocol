@@ -45,10 +45,12 @@ final class HttpStructBindingExtensionProvider
         $memberRoutes = [];
         $writeInfo = [];
         $headerMembers = [];
+        $headerWireNames = [];
         $queryMembers = [];
         $prefixHeaderMembers = [];
         $httpQueryNames = [];
         $bodyMemberIndices = [];
+        $responseBodyMemberIndices = [];
         $payloadSchema = null;
         $payloadMediaType = null;
         $requestTimestampKinds = [];
@@ -74,6 +76,7 @@ final class HttpStructBindingExtensionProvider
                 $lowerName = \strtolower($rawHeader);
 
                 $headerMembers[$idx] = $lowerName;
+                $headerWireNames[$lowerName] = true;
                 $memberRoutes[$idx] = HttpStructBindingExtension::ROUTE_HEADER;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_HEADER,
@@ -153,6 +156,7 @@ final class HttpStructBindingExtensionProvider
                     HttpStructBindingExtension::ROUTE_QUERY,
                     $encodedName
                 ];
+                $responseBodyMemberIndices[] = $idx;
 
                 if ($member->type === ShapeType::Timestamp->value) {
                     $format = TimestampFormat::fromTraitString(
@@ -182,6 +186,7 @@ final class HttpStructBindingExtensionProvider
                     HttpStructBindingExtension::ROUTE_QUERY_PARAMS,
                     null
                 ];
+                $responseBodyMemberIndices[] = $idx;
             } elseif ($member->hasTrait(Schema::T_HTTP_PREFIX_HEADERS)) {
                 $prefix = $member->getTrait(Schema::T_HTTP_PREFIX_HEADERS);
                 $lowerPrefix = \strtolower($prefix);
@@ -202,6 +207,7 @@ final class HttpStructBindingExtensionProvider
                     HttpStructBindingExtension::ROUTE_LABEL,
                     null
                 ];
+                $responseBodyMemberIndices[] = $idx;
 
                 if ($member->type === ShapeType::Timestamp->value) {
                     $format = TimestampFormat::fromTraitString(
@@ -222,12 +228,14 @@ final class HttpStructBindingExtensionProvider
                 $memberRoutes[$idx] =
                     HttpStructBindingExtension::ROUTE_RESPONSE_CODE;
                 $writeInfo[$idx] = [
-                    HttpStructBindingExtension::ROUTE_RESPONSE_CODE,
+                    HttpStructBindingExtension::ROUTE_BODY_MEMBER,
                     null
                 ];
                 $responseCodeMemberIndex = $idx;
+                $bodyMemberIndices[] = $idx;
             } else {
                 $bodyMemberIndices[] = $idx;
+                $responseBodyMemberIndices[] = $idx;
                 $memberRoutes[$idx] =
                     HttpStructBindingExtension::ROUTE_BODY_MEMBER;
                 $writeInfo[$idx] = [
@@ -241,6 +249,7 @@ final class HttpStructBindingExtensionProvider
             memberRoutes: $memberRoutes,
             writeInfo: $writeInfo,
             headerMembers: $headerMembers,
+            headerWireNames: $headerWireNames,
             queryMembers: $queryMembers,
             prefixHeaderMembers: $prefixHeaderMembers,
             httpQueryNames: $httpQueryNames,
@@ -256,6 +265,10 @@ final class HttpStructBindingExtensionProvider
             prefixHeaderDeserMembers: $prefixHeaderDeserMembers,
             responseCodeMemberIndex: $responseCodeMemberIndex,
             payloadMemberIndex: $payloadMemberIndex,
+            responseBodyMemberIndices: $responseBodyMemberIndices,
+            responseBodySchema: $responseBodyMemberIndices !== []
+                ? $schema->withMembers($responseBodyMemberIndices)
+                : null,
             scalarTimestampFormats: $scalarTimestampFormats,
             listTimestampKinds: $listTimestampKinds
         );

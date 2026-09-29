@@ -47,6 +47,15 @@ final class HttpStructBindingExtension
         /** @var array<int, string> memberIndex => lowercase header name */
         public readonly array $headerMembers = [],
         /**
+         * Explicit `@httpHeader` wire names, keyed by lowercase name.
+         *
+         * Used to give explicit header bindings precedence over entries from
+         * `@httpPrefixHeaders`.
+         *
+         * @var array<string, true>
+         */
+        public readonly array $headerWireNames = [],
+        /**
          * URL-encoded `@httpQuery` member names, keyed by member index.
          *
          * @var array<int, string>
@@ -106,6 +115,15 @@ final class HttpStructBindingExtension
         public readonly ?int $responseCodeMemberIndex = null,
         /** memberIndex of the `@httpPayload` member. */
         public readonly ?int $payloadMemberIndex = null,
+        /** @var list<int> Response body member indices. */
+        public readonly array $responseBodyMemberIndices = [],
+        /**
+         * Cached response-direction body schema.
+         *
+         * Request-only bindings such as `@httpQuery` and `@httpLabel` are
+         * treated as body members when the schema is used as an output.
+         */
+        public readonly ?Schema $responseBodySchema = null,
 
         /**
          * Scalar response-header timestamp formats, keyed by member index.
