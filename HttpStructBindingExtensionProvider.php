@@ -9,6 +9,7 @@ use Smithy\Core\Serde\SchemaExtensionKey;
 use Smithy\Core\Serde\SchemaExtensionProviderInterface;
 use Smithy\Core\Shape\ShapeType;
 use Smithy\Core\Serde\TimestampFormat;
+use Smithy\Http\Message\HttpMessageValidator;
 
 /**
  * Provide HTTP binding metadata for structure and union schemas.
@@ -73,6 +74,7 @@ final class HttpStructBindingExtensionProvider
 
             if ($member->hasTrait(Schema::T_HTTP_HEADER)) {
                 $rawHeader = $member->getTrait(Schema::T_HTTP_HEADER);
+                HttpMessageValidator::validateHeaderName($rawHeader);
                 $lowerName = \strtolower($rawHeader);
 
                 $headerMembers[$idx] = $lowerName;
@@ -189,6 +191,9 @@ final class HttpStructBindingExtensionProvider
                 $responseBodyMemberIndices[] = $idx;
             } elseif ($member->hasTrait(Schema::T_HTTP_PREFIX_HEADERS)) {
                 $prefix = $member->getTrait(Schema::T_HTTP_PREFIX_HEADERS);
+                if ($prefix !== '') {
+                    HttpMessageValidator::validateHeaderName($prefix);
+                }
                 $lowerPrefix = \strtolower($prefix);
                 $prefixHeaderMembers[$idx] = $lowerPrefix;
                 $prefixHeaderDeserMembers[$idx] = [

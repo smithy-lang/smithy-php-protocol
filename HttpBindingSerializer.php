@@ -14,6 +14,7 @@ use Smithy\Core\Serde\TimestampFormat;
 use Smithy\Core\Shape\BigDecimal;
 use Smithy\Core\Shape\BigInteger;
 use Smithy\Core\Shape\Document\DocumentInterface;
+use Smithy\Http\Message\HttpMessageValidator;
 
 /**
  * Serialize structure members into HTTP binding locations.
@@ -246,6 +247,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
             case HttpStructBindingExtension::ROUTE_HEADER:
                 if (isset($w[2])) {
                     $value = \base64_encode($value);
+                } else {
+                    HttpMessageValidator::validateHeaderValue($value);
                 }
                 $this->headers[$w[1]] = [$w[1], [$value]];
 
@@ -371,9 +374,15 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
             ?? ShapeType::Document->value;
         switch ($w[0]) {
             case HttpStructBindingExtension::ROUTE_HEADER:
+                $value = $this->formatListHeader(
+                    $list,
+                    $idx,
+                    $memberType
+                );
+                HttpMessageValidator::validateHeaderValue($value);
                 $this->headers[$w[1]] = [
                     $w[1],
-                    [$this->formatListHeader($list, $idx, $memberType)]
+                    [$value]
                 ];
 
                 return;
@@ -867,10 +876,14 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         foreach ($map as $k => $v) {
             $name = $prefix . $k;
-            if (isset($this->headerWireNames[\strtolower($name)])) {
+            $lowerName = \strtolower($name);
+            if (isset($this->headerWireNames[$lowerName])) {
                 continue;
             }
-            $this->headers[$name] = [$name, [(string) $v]];
+            $value = (string) $v;
+            HttpMessageValidator::validateHeaderName($name);
+            HttpMessageValidator::validateHeaderValue($value);
+            $this->headers[$lowerName] = [$name, [$value]];
         }
     }
 
