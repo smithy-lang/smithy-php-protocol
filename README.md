@@ -75,6 +75,10 @@ member routing, and response interpretation.
 This package depends on `smithy/codec`, `smithy/core`, `smithy/http`, and
 `psr/http-message`.
 
+## Design
+
+See [Protocol Design](../../docs/design/protocol/protocol-design.md).
+
 ## Contributing
 
 Run the component tests from the monorepo root:
