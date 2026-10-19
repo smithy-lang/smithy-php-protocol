@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace Smithy\Protocol;
 
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 use Smithy\Client\Endpoint\Endpoint;
+use Smithy\Client\Transport\{
+    MessageExchangeInterface,
+    TransportRequestInterface,
+    TransportResponseInterface
+};
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Shape\OperationInterface;
 
 /**
- * Contract for protocols that serialize operations to HTTP messages.
+ * Contract for protocols that serialize operations to transport messages.
  *
- * RPC-style protocols determine the wire shape from their own conventions
- * plus the codec's body serialization. HTTP binding protocols use operation
- * and member schema extensions to drive path, query, header, payload, and
- * body routing.
+ * A protocol declares its message exchange so client configuration can
+ * reject incompatible transports before execution.
  */
 interface ProtocolInterface
 {
@@ -26,43 +27,42 @@ interface ProtocolInterface
     public function getId(): string;
 
     /**
-     * Serialize an operation input into an HTTP request.
+     * Return the request and response types used by this protocol.
+     */
+    public function getMessageExchange(): MessageExchangeInterface;
+
+    /**
+     * Serialize an operation input into a transport request.
      *
      * @param OperationInterface $operation The operation singleton.
      * @param SerializableStructInterface $input The input shape.
-     * @param string $endpoint The base endpoint URL, or `/` to create an
-     *                         operation-relative request for later binding.
-     *
-     * @return RequestInterface The serialized HTTP request.
      */
     public function serializeRequest(
         OperationInterface $operation,
-        SerializableStructInterface $input,
-        string $endpoint
-    ): RequestInterface;
+        SerializableStructInterface $input
+    ): TransportRequestInterface;
 
     /**
-     * Bind a resolved service endpoint to an operation-relative request.
+     * Bind a resolved service endpoint and its headers to an
+     * operation-relative request.
      */
     public function setServiceEndpoint(
-        RequestInterface $request,
+        TransportRequestInterface $request,
         Endpoint $endpoint
-    ): RequestInterface;
+    ): TransportRequestInterface;
 
     /**
-     * Deserialize an HTTP response into an output shape.
+     * Deserialize a transport response into an output shape.
      *
      * Throws when the response does not satisfy the protocol's success
      * contract or represents a modeled/unmodeled service error.
      *
      * @param OperationInterface $operation The operation singleton.
-     * @param ResponseInterface $response The HTTP response.
-     *
      * @return SerializableStructInterface The deserialized output shape.
      * @throws \Throwable On protocol or service error responses.
      */
     public function deserializeResponse(
         OperationInterface $operation,
-        ResponseInterface $response
+        TransportResponseInterface $response
     ): SerializableStructInterface;
 }

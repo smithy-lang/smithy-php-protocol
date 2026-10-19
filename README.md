@@ -17,7 +17,6 @@ composer require smithy/protocol
 $request = $protocol->serializeRequest(
     $operation,
     $input,
-    '/',
 );
 
 $request = $protocol->setServiceEndpoint(
@@ -33,6 +32,10 @@ $output = $protocol->deserializeResponse(
 
 Clients serialize an operation-relative request once before the retry loop.
 Each request attempt resolves and binds its service endpoint before signing.
+Protocols declare their request/response message exchange so configuration
+can reject an incompatible transport before execution. HTTP protocols use
+`HttpTransportRequest` and `HttpTransportResponse`, whose payloads remain
+PSR-7 messages at the HTTP boundary.
 
 Operations supply input, output, error, and HTTP metadata through runtime
 schemas. Protocol implementations use codecs for body encoding.

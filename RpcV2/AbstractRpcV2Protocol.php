@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace Smithy\Protocol\RpcV2;
 
-use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Smithy\Client\Endpoint\Endpoint;
+use Smithy\Client\Transport\{
+    MessageExchangeInterface,
+    TransportRequestInterface,
+    TransportResponseInterface
+};
 use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\SerializableStructInterface;
 use Smithy\Core\Shape\OperationInterface;
-use Smithy\Http\Message\Request;
-use Smithy\Http\Message\Uri;
+use Smithy\Http\Message\{
+    HttpMessageExchange,
+    HttpTransportRequest,
+    HttpTransportResponse,
+    Request,
+    Uri
+};
 use Smithy\Protocol\Exception\ProtocolException;
 use Smithy\Protocol\HttpErrorDeserializer;
 use Smithy\Protocol\ProtocolInterface;
@@ -64,14 +73,20 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
         private readonly HttpErrorDeserializer $errorDeserializer
     ) {}
 
+    /** @inheritDoc */
+    public function getMessageExchange(): MessageExchangeInterface
+    {
+        return HttpMessageExchange::instance();
+    }
+
     /**
-     * Serialize operation input into an RPC v2 HTTP request.
+     * Serialize operation input into an RPC v2 transport request.
      */
     public function serializeRequest(
         OperationInterface $operation,
-        SerializableStructInterface $input,
-        string $endpoint
-    ): RequestInterface {
+        SerializableStructInterface $input
+    ): TransportRequestInterface
+    {
         [$requestPath, $inputIsUnit] = $this->resolveWireInfo($operation);
 
         $headers = [
@@ -102,61 +117,47 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
             ];
         }
 
-        $ep = \parse_url($endpoint);
-        if ($ep === false) {
-            throw new ProtocolException(
-                "Unable to parse endpoint URL: {$endpoint}"
-            );
-        }
-        $endpointPath = $ep['path'] ?? '';
-        $path = $endpointPath !== '' && $endpointPath !== '/'
-            ? \rtrim($endpointPath, '/') . $requestPath
-            : $requestPath;
-
-        if (!isset($headers['host']) && isset($ep['host'])) {
-            $host = $ep['host'];
-            if (isset($ep['port'])) {
-                $host .= ':' . $ep['port'];
-            }
-            $headers = [
-                'host' => ['Host', [$host]]
-            ] + $headers;
-        }
-
         $uri = new ComponentUri(
-            scheme: isset($ep['host']) ? ($ep['scheme'] ?? 'https') : '',
-            host: $ep['host'] ?? '',
-            port: $ep['port'] ?? null,
-            path: $path
+            scheme: '',
+            host: '',
+            path: $requestPath
         );
 
-        return Request::fromNormalized(
-            'POST',
-            $uri,
-            $headers,
-            $body
+        return new HttpTransportRequest(
+            Request::fromNormalized(
+                'POST',
+                $uri,
+                $headers,
+                $body
+            )
         );
     }
 
     public function setServiceEndpoint(
-        RequestInterface $request,
+        TransportRequestInterface $request,
         Endpoint $endpoint
-    ): RequestInterface
+    ): TransportRequestInterface
     {
+        $request = HttpTransportRequest::expect($request);
+        $httpRequest = $request->request;
         $endpointUri = new Uri($endpoint->url);
-        $requestUri = $request->getUri();
+        $requestUri = $httpRequest->getUri();
         $endpointPath = $endpointUri->getPath();
         $path = $endpointPath !== '' && $endpointPath !== '/'
             ? \rtrim($endpointPath, '/') . $requestUri->getPath()
             : $requestUri->getPath();
 
-        return $request->withUri(
-            $endpointUri
-                ->withPath($path)
-                ->withQuery($requestUri->getQuery())
-                ->withFragment('')
-                ->withUserInfo('')
-        );
+        return $request
+            ->withRequest(
+                $httpRequest->withUri(
+                    $endpointUri
+                        ->withPath($path)
+                        ->withQuery($requestUri->getQuery())
+                        ->withFragment('')
+                        ->withUserInfo('')
+                )
+            )
+            ->withEndpointHeaders($endpoint);
     }
 
     /**
@@ -164,8 +165,10 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
      */
     public function deserializeResponse(
         OperationInterface $operation,
-        ResponseInterface $response
-    ): SerializableStructInterface {
+        TransportResponseInterface $response
+    ): SerializableStructInterface
+    {
+        $response = HttpTransportResponse::expect($response)->response;
         $statusCode = $response->getStatusCode();
         if ($statusCode !== 200) {
             throw $this->errorDeserializer->deserialize(
