@@ -56,6 +56,7 @@ abstract class HttpErrorDeserializer
             ] = $parsed;
         } catch (\Throwable $e) {
             return $this->createUnmodeledError(
+                $operation,
                 $response,
                 null,
                 $e->getMessage(),
@@ -69,6 +70,7 @@ abstract class HttpErrorDeserializer
             : null;
         if ($errorSchema === null) {
             return $this->createUnmodeledError(
+                $operation,
                 $response,
                 $discriminator,
                 $message,
@@ -107,6 +109,7 @@ abstract class HttpErrorDeserializer
                 );
         } catch (\Throwable $e) {
             return $this->createUnmodeledError(
+                $operation,
                 $response,
                 $discriminator,
                 $message,
@@ -161,12 +164,33 @@ abstract class HttpErrorDeserializer
      * Create the generic exception used for unmodeled or malformed errors.
      */
     protected function createUnmodeledError(
+        OperationInterface $operation,
         ResponseInterface $response,
         ?string $discriminator,
         string $message,
         ?string $requestId,
         ?\Throwable $previous = null
     ): \Throwable
+    {
+        return $this->createUnmodeledErrorWithClass(
+            $operation->getServiceExceptionClass(),
+            $response,
+            $discriminator,
+            $message,
+            $previous
+        );
+    }
+
+    /**
+     * @param class-string<ApiException> $errorClass
+     */
+    private function createUnmodeledErrorWithClass(
+        string $errorClass,
+        ResponseInterface $response,
+        ?string $discriminator,
+        string $message,
+        ?\Throwable $previous
+    ): ApiException
     {
         $statusCode = $response->getStatusCode();
         if ($message === '') {
@@ -175,7 +199,7 @@ abstract class HttpErrorDeserializer
                 : "HTTP {$statusCode}";
         }
 
-        return new ApiException(
+        return new $errorClass(
             $message,
             $this->resolveFault($response),
             $previous
