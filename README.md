@@ -64,6 +64,17 @@ use Smithy\Protocol\RpcV2\RpcV2CborProtocol;
 $protocol = new RpcV2CborProtocol();
 ```
 
+## RPC v2 JSON
+
+`RpcV2JsonProtocol` implements the public `smithy.protocols#rpcv2Json`
+protocol using the JSON codec.
+
+```php
+use Smithy\Protocol\RpcV2\RpcV2JsonProtocol;
+
+$protocol = new RpcV2JsonProtocol();
+```
+
 Provider packages compose their protocol implementations from the shared HTTP
 binding, codec, and error-deserialization components.
 
