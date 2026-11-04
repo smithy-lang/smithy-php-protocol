@@ -85,7 +85,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      */
     public function __construct(
         private readonly AbstractCodec $codec,
-        private readonly HttpStructBindingExtension $bindingInfo
+        private readonly HttpStructBindingExtension $bindingInfo,
+        private readonly ProtocolSettings $settings = new ProtocolSettings()
     )
     {
         $this->writeInfo = $bindingInfo->writeInfo;
@@ -531,8 +532,10 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
             $value = $labels[$seg[1]];
             if ($seg[2]) {
+                $this->validateGreedyLabel($value, $seg[1]);
                 $value = self::encodeGreedyLabel($value);
             } else {
+                self::validatePathSegment($value, $seg[1]);
                 $value = \rawurlencode($value);
             }
             $path .= $value;
@@ -759,6 +762,34 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     private static function encodeGreedyLabel(string $value): string
     {
         return \implode('/', \array_map('rawurlencode', \explode('/', $value)));
+    }
+
+    private function validateGreedyLabel(string $value, int $memberIndex): void
+    {
+        if ($this->settings->httpPathLabelPolicy
+            === HttpPathLabelPolicy::PreserveGreedySegments
+        ) {
+            return;
+        }
+
+        foreach (\explode('/', $value) as $segment) {
+            self::validatePathSegment($segment, $memberIndex);
+        }
+    }
+
+    private static function validatePathSegment(
+        string $segment,
+        int $memberIndex
+    ): void
+    {
+        if ($segment !== '' && $segment !== '.' && $segment !== '..') {
+            return;
+        }
+
+        throw new \InvalidArgumentException(
+            "HTTP URI label for member index {$memberIndex} contains an "
+                . 'ambiguous path segment.'
+        );
     }
 
     private function serializeListQuery(

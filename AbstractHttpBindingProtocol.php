@@ -70,7 +70,8 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
      */
     public function __construct(
         protected readonly AbstractCodec $codec,
-        private readonly HttpErrorDeserializer $errorDeserializer
+        private readonly HttpErrorDeserializer $errorDeserializer,
+        private readonly ProtocolSettings $settings
     ) {}
 
     /** @inheritDoc */
@@ -115,7 +116,11 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
         $bindingInfo = $runtime[1];
 
         if ($bindingInfo !== null) {
-            $serializer = new HttpBindingSerializer($this->codec, $bindingInfo);
+            $serializer = new HttpBindingSerializer(
+                $this->codec,
+                $bindingInfo,
+                $this->settings
+            );
             $input->serializeMembers($serializer);
             $path = $serializer->serializePath($pathSegments, $defaultPath);
             $queryString = $serializer->serializeQueryString(
