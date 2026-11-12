@@ -10,14 +10,13 @@ declare(strict_types=1);
 namespace Smithy\Protocol;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Exception\ApiException;
 use Smithy\Core\Exception\ErrorFault;
 use Smithy\Core\Serde\Schema;
-use Smithy\Core\Serde\ShapeDeserializerInterface;
 use Smithy\Core\Shape\Exception\DocumentException;
 use Smithy\Core\Shape\OperationInterface;
+use Smithy\Http\Message\StringRequestStream;
 
 /**
  * Deserialize modeled errors for HTTP protocols.
@@ -43,22 +42,12 @@ abstract class HttpErrorDeserializer
     ): \Throwable
     {
         try {
-            $this->validateResponse($response);
-            $contentLength = $response->getHeader('content-length')[0] ?? null;
-            $parsed = $contentLength !== null && (int) $contentLength === 0
-                ? [
-                    'discriminator' => null,
-                    'message' => '',
-                    'deserializer' => null,
-                    'requestId' => null
-                ]
-                : $this->parseError($response->getBody());
             [
                 'discriminator' => $discriminator,
                 'message' => $message,
-                'deserializer' => $deserializer,
+                'body' => $body,
                 'requestId' => $requestId
-            ] = $parsed;
+            ] = $this->parseError($response);
         } catch (\Throwable $e) {
             return $this->createUnmodeledError(
                 $operation,
@@ -100,7 +89,8 @@ abstract class HttpErrorDeserializer
                 $this->deserializeMembers(
                     $schema,
                     $members,
-                    $deserializer
+                    $response,
+                    $body
                 );
             }
 
@@ -130,20 +120,13 @@ abstract class HttpErrorDeserializer
      * @return array{
      *     discriminator: ?string,
      *     message: string,
-     *     deserializer: ShapeDeserializerInterface,
+     *     body: string,
      *     requestId: ?string
      * }
      */
     abstract protected function parseError(
-        StreamInterface $body
+        ResponseInterface $response
     ): array;
-
-    /**
-     * Validate response metadata before parsing the body.
-     *
-     * @return void
-     */
-    protected function validateResponse(ResponseInterface $response): void {}
 
     /**
      * Deserialize modeled members from the parsed error payload.
@@ -155,14 +138,17 @@ abstract class HttpErrorDeserializer
     protected function deserializeMembers(
         Schema $schema,
         array &$members,
-        ?ShapeDeserializerInterface $deserializer
+        ResponseInterface $response,
+        string $body
     ): void
     {
-        if ($deserializer === null) {
+        if ($body === '') {
             return;
         }
 
-        $deserializer->deserialize($schema, $members);
+        $this->codec->createDeserializer(
+            new StringRequestStream($body)
+        )->deserialize($schema, $members);
     }
 
     /**

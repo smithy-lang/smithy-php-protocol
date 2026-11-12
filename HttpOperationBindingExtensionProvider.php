@@ -53,7 +53,11 @@ final class HttpOperationBindingExtensionProvider implements SchemaExtensionProv
         ) {
             $fragments = [];
             foreach ($http['pathQueryPairs'] as $pair) {
-                $fragments[] = $pair[0] . '=' . $pair[1];
+                $fragment = $pair[0];
+                if (isset($pair[1])) {
+                    $fragment .= '=' . $pair[1];
+                }
+                $fragments[] = $fragment;
             }
             $pathQueryString = \implode('&', $fragments);
         }

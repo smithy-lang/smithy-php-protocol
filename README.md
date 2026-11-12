@@ -75,8 +75,19 @@ use Smithy\Protocol\RpcV2\RpcV2JsonProtocol;
 $protocol = new RpcV2JsonProtocol();
 ```
 
-Provider packages compose their protocol implementations from the shared HTTP
-binding, codec, and error-deserialization components.
+## AWS Rest XML
+
+`RestXmlProtocol` implements `aws.protocols#restXml` with Smithy HTTP bindings,
+the XML codec, and AWS XML error envelopes.
+
+```php
+use Smithy\Protocol\Aws\RestXmlProtocol;
+
+$protocol = new RestXmlProtocol();
+```
+
+Provider packages compose the remaining protocol implementations from the
+shared HTTP binding, codec, and error-deserialization components.
 
 ## Component Boundaries
 

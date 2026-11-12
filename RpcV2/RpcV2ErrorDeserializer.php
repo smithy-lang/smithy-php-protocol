@@ -10,11 +10,10 @@ declare(strict_types=1);
 namespace Smithy\Protocol\RpcV2;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 use Smithy\Codec\AbstractCodec;
 use Smithy\Core\Serde\Schema;
-use Smithy\Core\Serde\ShapeDeserializerInterface;
 use Smithy\Core\Shape\ShapeType;
+use Smithy\Http\Message\StringRequestStream;
 use Smithy\Protocol\Exception\ProtocolException;
 use Smithy\Protocol\HttpErrorDeserializer;
 
@@ -37,11 +36,16 @@ final class RpcV2ErrorDeserializer extends HttpErrorDeserializer
     }
 
     /**
-     * Validate RPC v2 error response metadata.
+     * Parse the RPC v2 error envelope.
      *
-     * @return void
+     * @return array{
+     *     discriminator: ?string,
+     *     message: string,
+     *     body: string,
+     *     requestId: ?string
+     * }
      */
-    protected function validateResponse(ResponseInterface $response): void
+    protected function parseError(ResponseInterface $response): array
     {
         if ($response->getHeaderLine('Smithy-Protocol')
             !== $this->protocolHeaderValue
@@ -53,30 +57,30 @@ final class RpcV2ErrorDeserializer extends HttpErrorDeserializer
                 . " error response (HTTP {$statusCode})."
             );
         }
-    }
 
-    /**
-     * Parse the RPC v2 error envelope.
-     *
-     * @return array{
-     *     discriminator: ?string,
-     *     message: string,
-     *     deserializer: ShapeDeserializerInterface,
-     *     requestId: ?string
-     * }
-     */
-    protected function parseError(StreamInterface $body): array
-    {
+        $body = $response->getHeaderLine('Content-Length') === '0'
+            ? ''
+            : $response->getBody()->getContents();
+        if ($body === '') {
+            return [
+                'discriminator' => null,
+                'message' => '',
+                'body' => '',
+                'requestId' => null
+            ];
+        }
+
         $members = [null, null];
-        $deserializer = $this->codec->createDeserializer($body);
-        $deserializer->deserialize(self::envelopeSchema(), $members);
+        $this->codec->createDeserializer(
+            new StringRequestStream($body)
+        )->deserialize(self::envelopeSchema(), $members);
 
         return [
             'discriminator' => \is_string($members[0])
                 ? $members[0]
                 : null,
             'message' => \is_string($members[1]) ? $members[1] : '',
-            'deserializer' => $deserializer,
+            'body' => $body,
             'requestId' => null
         ];
     }
