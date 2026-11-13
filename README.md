@@ -119,8 +119,32 @@ use Smithy\Protocol\Aws\RestXmlProtocol;
 $protocol = new RestXmlProtocol();
 ```
 
-Provider packages compose the query protocol implementations from the shared
-codec and error-deserialization components.
+## AWS Query
+
+`AwsQueryProtocol` implements `aws.protocols#awsQuery` with form URL-encoded
+requests and XML responses.
+
+```php
+use Smithy\Protocol\Aws\AwsQueryProtocol;
+
+$protocol = new AwsQueryProtocol('2020-01-08');
+```
+
+Pass the service version from the Smithy service shape. The protocol sends it
+with the operation action in every request body.
+
+## EC2 Query
+
+`Ec2QueryProtocol` implements `aws.protocols#ec2Query` with EC2-specific form
+member names, flattened lists, and XML response wrappers.
+
+```php
+use Smithy\Protocol\Aws\Ec2QueryProtocol;
+
+$protocol = new Ec2QueryProtocol('2020-01-08');
+```
+
+Pass the service version from the Smithy service shape.
 
 ## Component Boundaries
 
