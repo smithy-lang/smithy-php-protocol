@@ -57,22 +57,4 @@ final class RestXmlErrorDeserializer extends AwsXmlErrorDeserializer
         );
         $deserializer->deserialize($schema, $members);
     }
-
-    /**
-     * @return array<string, array{string, list<string>}>
-     */
-    private static function normalizeHeaders(
-        ResponseInterface $response
-    ): array
-    {
-        $normalized = [];
-        foreach ($response->getHeaders() as $name => $values) {
-            $normalized[\strtolower($name)] = [
-                $name,
-                \array_values($values)
-            ];
-        }
-
-        return $normalized;
-    }
 }

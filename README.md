@@ -75,6 +75,17 @@ use Smithy\Protocol\RpcV2\RpcV2JsonProtocol;
 $protocol = new RpcV2JsonProtocol();
 ```
 
+## AWS Rest JSON
+
+`RestJsonProtocol` implements `aws.protocols#restJson1` with Smithy HTTP
+bindings, the JSON codec, and AWS JSON error envelopes.
+
+```php
+use Smithy\Protocol\Aws\RestJsonProtocol;
+
+$protocol = new RestJsonProtocol();
+```
+
 ## AWS Rest XML
 
 `RestXmlProtocol` implements `aws.protocols#restXml` with Smithy HTTP bindings,

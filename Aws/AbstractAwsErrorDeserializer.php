@@ -59,4 +59,22 @@ abstract class AbstractAwsErrorDeserializer extends HttpErrorDeserializer
             httpStatusCode: $statusCode
         );
     }
+
+    /**
+     * @return array<string, array{string, list<string>}>
+     */
+    final protected static function normalizeHeaders(
+        ResponseInterface $response
+    ): array
+    {
+        $normalized = [];
+        foreach ($response->getHeaders() as $name => $values) {
+            $normalized[\strtolower($name)] = [
+                $name,
+                \array_values($values)
+            ];
+        }
+
+        return $normalized;
+    }
 }
