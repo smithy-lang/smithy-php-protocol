@@ -27,10 +27,12 @@ use Smithy\Http\Message\{
     HttpTransportResponse,
     Request,
     RequestStreamInterface,
-    ResponseInterface,
-    Uri
+    ResponseInterface
 };
-use Smithy\Protocol\Utils\ComponentUri;
+use Smithy\Protocol\Utils\{
+    ComponentUri,
+    ServiceEndpoint
+};
 
 /**
  * Share HTTP binding logic for protocols that use HTTP binding traits.
@@ -192,26 +194,7 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
         Endpoint $endpoint
     ): TransportRequestInterface
     {
-        $request = HttpTransportRequest::expect($request);
-        $httpRequest = $request->request;
-        $endpointUri = new Uri($endpoint->url);
-        $requestUri = $httpRequest->getUri();
-        $endpointPath = $endpointUri->getPath();
-        $path = $endpointPath !== '' && $endpointPath !== '/'
-            ? \rtrim($endpointPath, '/') . $requestUri->getPath()
-            : $requestUri->getPath();
-
-        return $request
-            ->withRequest(
-                $httpRequest->withUri(
-                    $endpointUri
-                        ->withPath($path)
-                        ->withQuery($requestUri->getQuery())
-                        ->withFragment('')
-                        ->withUserInfo('')
-                )
-            )
-            ->withEndpointHeaders($endpoint);
+        return ServiceEndpoint::apply($request, $endpoint);
     }
 
     /**

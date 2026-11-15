@@ -661,89 +661,67 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         return $this->headers;
     }
 
-    /**
-     * Write an autofilled `@idempotencyToken` value into the binding bucket
-     * matching the member's route. Called by the protocol layer when the
-     * caller did not supply a value. Skips the `@mediaType` base64 detour
-     * that `serializeString` performs because a token-bound string with
-     * `@mediaType` is invalid Smithy modeling and we shouldn't apply that
-     * encoding to the generated UUID.
-     *
-     * @return void
-     */
-    public function writeIdempotencyToken(
-        int $idx,
-        int $route,
-        string $value,
-        Schema $member
-    ): void
-    {
-        $w = $this->writeInfo[$idx];
-        switch ($route) {
-            case HttpStructBindingExtension::ROUTE_HEADER:
-                $this->headers[$w[1]] = [$w[1], [$value]];
-
-                return;
-            case HttpStructBindingExtension::ROUTE_QUERY:
-                $this->writeQueryPair($w[1], $value);
-
-                return;
-            case HttpStructBindingExtension::ROUTE_LABEL:
-                $this->labels[$idx] = $value;
-
-                return;
-            case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeString($member, $value, $idx);
-
-                return;
-        }
-    }
-
     private function formatListHeader(array $list, int $idx, int $memberType): string
     {
+        $s = '';
         switch ($memberType) {
-            case ShapeType::Boolean->value:
-                return self::joinList(
-                    $list,
-                    static fn($v) => $v ? 'true' : 'false'
-                );
             case ShapeType::Timestamp->value:
                 return self::formatTimestampList(
                     $list,
                     $this->listTimestampKinds[$idx]
                         ?? TimestampFormat::HttpDate->value
                 );
+            case ShapeType::Boolean->value:
+                foreach ($list as $v) {
+                    if ($s !== '') {
+                        $s .= ', ';
+                    }
+                    $s .= $v ? 'true' : 'false';
+                }
+                break;
             case ShapeType::Float_->value:
             case ShapeType::Double->value:
-                return self::joinList(
-                    $list,
-                    static fn($v) => match ($s = (string) $v) {
+                foreach ($list as $v) {
+                    if ($s !== '') {
+                        $s .= ', ';
+                    }
+                    $s .= match ($f = (string) $v) {
                         'NAN' => 'NaN',
                         'INF' => 'Infinity',
                         '-INF' => '-Infinity',
-                        default => $s
-                    }
-                );
+                        default => $f
+                    };
+                }
+                break;
             case ShapeType::Enum->value:
-                return self::joinList(
-                    $list,
-                    static fn($v) => \is_string($v) ? $v : $v->value
-                );
+                foreach ($list as $v) {
+                    if ($s !== '') {
+                        $s .= ', ';
+                    }
+                    $s .= \is_string($v) ? $v : $v->value;
+                }
+                break;
             case ShapeType::IntEnum->value:
-                return self::joinList(
-                    $list,
-                    static fn($v) => (string) (
-                        \is_int($v) ? $v : $v->value
-                    )
-                );
+                foreach ($list as $v) {
+                    if ($s !== '') {
+                        $s .= ', ';
+                    }
+                    $s .= \is_int($v) ? $v : $v->value;
+                }
+                break;
             case ShapeType::String_->value:
-                return self::joinList(
-                    $list,
-                    static fn($v) => self::quoteStringHeaderItem((string) $v)
-                );
+                foreach ($list as $v) {
+                    if ($s !== '') {
+                        $s .= ', ';
+                    }
+                    $s .= self::quoteStringHeaderItem((string) $v);
+                }
+                break;
             default:
                 return \implode(', ', $list);
         }
+
+        return $s;
     }
 
     /**
@@ -956,33 +934,27 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     private function buildPayload(mixed $value): string|StreamInterface
     {
         $payloadSchema = $this->bindingInfo->payloadSchema;
-        switch ($payloadSchema->type) {
+        $type = $payloadSchema->type;
+        switch ($type) {
             case ShapeType::Structure->value:
-                $serializer = $this->codec->createSerializer();
-                $serializer->serializeStruct($payloadSchema, $value, 0);
-
-                return $serializer->flush();
             case ShapeType::Union->value:
+            case ShapeType::Document->value:
                 $serializer = $this->codec->createSerializer();
-                $serializer->serializeUnion($payloadSchema, $value, 0);
+                if ($type === ShapeType::Structure->value) {
+                    $serializer->serializeStruct($payloadSchema, $value, 0);
+                } elseif ($type === ShapeType::Union->value) {
+                    $serializer->serializeUnion($payloadSchema, $value, 0);
+                } else {
+                    // Pass the payload member schema so nested document
+                    // values keep their type context during rendering.
+                    $serializer->serializeDocument($payloadSchema, $value, 0);
+                }
 
                 return $serializer->flush();
             case ShapeType::String_->value:
             case ShapeType::Enum->value:
             case ShapeType::Blob->value:
                 return $value;
-            case ShapeType::Document->value:
-                // Route document payloads through the codec's document entry
-                // point with the payload member schema so nested document
-                // values keep their type context during rendering.
-                $serializer = $this->codec->createSerializer();
-                $serializer->serializeDocument(
-                    $payloadSchema,
-                    $value,
-                    0
-                );
-
-                return $serializer->flush();
             default:
                 return (string) $value;
         }
@@ -1003,25 +975,5 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
             '-INF' => '-Infinity',
             default => $s,
         };
-    }
-
-    /**
-     * Join list items with comma separator using a formatter callback.
-     * Avoids intermediate array allocation from array_map + implode.
-     *
-     * @param list<mixed> $list
-     * @param \Closure(mixed): string $formatter
-     */
-    private static function joinList(array $list, \Closure $formatter): string
-    {
-        $s = '';
-        foreach ($list as $v) {
-            if ($s !== '') {
-                $s .= ', ';
-            }
-            $s .= $formatter($v);
-        }
-
-        return $s;
     }
 }

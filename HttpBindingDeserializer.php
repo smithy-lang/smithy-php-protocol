@@ -269,10 +269,13 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
             return null;
         }
 
-        $memberCount = $schema->getMemberCount();
-        $payloadMembers = $memberCount > 0
-            ? \array_fill(0, $memberCount, null)
-            : [];
+        if ($schema->getMemberCount() === 0) {
+            // A payload member that references its target shape carries no
+            // members of its own.
+            $schema = $schema->resolveTarget();
+        }
+
+        $payloadMembers = $this->payloadCodec->createMembersBuffer($schema);
         $this->payloadCodec->createDeserializer($body)->deserialize(
             $schema,
             $payloadMembers

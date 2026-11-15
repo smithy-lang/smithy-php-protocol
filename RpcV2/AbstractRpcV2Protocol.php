@@ -23,13 +23,15 @@ use Smithy\Http\Message\{
     HttpMessageExchange,
     HttpTransportRequest,
     HttpTransportResponse,
-    Request,
-    Uri
+    Request
 };
 use Smithy\Protocol\Exception\ProtocolException;
 use Smithy\Protocol\HttpErrorDeserializer;
 use Smithy\Protocol\ProtocolInterface;
-use Smithy\Protocol\Utils\ComponentUri;
+use Smithy\Protocol\Utils\{
+    ComponentUri,
+    ServiceEndpoint
+};
 
 /**
  * Shared base for Smithy RPC v2 protocols.
@@ -143,26 +145,7 @@ abstract class AbstractRpcV2Protocol implements ProtocolInterface
         Endpoint $endpoint
     ): TransportRequestInterface
     {
-        $request = HttpTransportRequest::expect($request);
-        $httpRequest = $request->request;
-        $endpointUri = new Uri($endpoint->url);
-        $requestUri = $httpRequest->getUri();
-        $endpointPath = $endpointUri->getPath();
-        $path = $endpointPath !== '' && $endpointPath !== '/'
-            ? \rtrim($endpointPath, '/') . $requestUri->getPath()
-            : $requestUri->getPath();
-
-        return $request
-            ->withRequest(
-                $httpRequest->withUri(
-                    $endpointUri
-                        ->withPath($path)
-                        ->withQuery($requestUri->getQuery())
-                        ->withFragment('')
-                        ->withUserInfo('')
-                )
-            )
-            ->withEndpointHeaders($endpoint);
+        return ServiceEndpoint::apply($request, $endpoint);
     }
 
     /**

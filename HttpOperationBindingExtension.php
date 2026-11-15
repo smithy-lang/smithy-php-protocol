@@ -37,10 +37,6 @@ final class HttpOperationBindingExtension
         /**
          * Precomputed static query string from the `@http` URI.
          */
-        public readonly ?string $pathQueryString = null,
-        /**
-         * HTTP response status code from the `@http` trait's `code` field.
-         */
-        public readonly ?int $httpResponseCode = null
+        public readonly ?string $pathQueryString = null
     ) {}
 }

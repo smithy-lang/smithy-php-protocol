@@ -183,18 +183,31 @@ abstract class HttpErrorDeserializer
         ?\Throwable $previous
     ): ApiException
     {
-        $statusCode = $response->getStatusCode();
-        if ($message === '') {
-            $message = $discriminator !== null && $discriminator !== ''
-                ? "HTTP {$statusCode}: {$discriminator}"
-                : "HTTP {$statusCode}";
-        }
-
         return new $errorClass(
-            $message,
+            self::defaultMessage($response, $discriminator, $message),
             $this->resolveFault($response),
             $previous
         );
+    }
+
+    /**
+     * Return `$message`, or an `HTTP <status>` message when it is empty.
+     */
+    final protected static function defaultMessage(
+        ResponseInterface $response,
+        ?string $discriminator,
+        string $message
+    ): string
+    {
+        if ($message !== '') {
+            return $message;
+        }
+
+        $statusCode = $response->getStatusCode();
+
+        return $discriminator !== null && $discriminator !== ''
+            ? "HTTP {$statusCode}: {$discriminator}"
+            : "HTTP {$statusCode}";
     }
 
     /**

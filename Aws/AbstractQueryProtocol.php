@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Smithy\Protocol\Aws;
 
-use Psr\Http\Message\ResponseInterface;
 use Smithy\Core\Endpoint\Endpoint;
 use Smithy\Core\Transport\{
     MessageExchangeInterface,
@@ -25,6 +24,7 @@ use Smithy\Codec\Xml\{
     XmlCodecSettings
 };
 use Smithy\Core\Serde\{
+    Schema,
     SerializableStructInterface,
     TimestampFormat
 };
@@ -33,11 +33,14 @@ use Smithy\Http\Message\{
     HttpMessageExchange,
     HttpTransportRequest,
     HttpTransportResponse,
-    Request,
-    Uri
+    Request
 };
 use Smithy\Protocol\ProtocolInterface;
-use Smithy\Protocol\Utils\ComponentUri;
+use Smithy\Protocol\Utils\{
+    ComponentUri,
+    ResponseBody,
+    ServiceEndpoint
+};
 
 /**
  * Share request and response behavior for the AWS query protocol family.
@@ -50,6 +53,15 @@ abstract class AbstractQueryProtocol implements ProtocolInterface
     private readonly XmlCodec $responseCodec;
     private readonly AwsXmlErrorDeserializer $errorDeserializer;
     private readonly string $encodedVersion;
+    /** @var array<string, string> `Action=...&Version=...` by runtime identity. */
+    private array $actionBodyByOperation = [];
+    /**
+     * Response wrappers, output schema and members template by runtime
+     * identity.
+     *
+     * @var array<string, array{0: list<string>, 1: Schema, 2: array<int, mixed>}>
+     */
+    private array $outputByOperation = [];
 
     /**
      * @param string $version Service version from the Smithy service shape.
@@ -127,8 +139,9 @@ abstract class AbstractQueryProtocol implements ProtocolInterface
             $this->requestCodec->releaseSerializer($serializer);
         }
 
-        $body = 'Action=' . \rawurlencode($this->resolveAction($operation))
-            . '&Version=' . $this->encodedVersion;
+        $body = $this->actionBodyByOperation[$operation->getRuntimeIdentity()]
+            ??= 'Action=' . \rawurlencode($this->resolveAction($operation))
+                . '&Version=' . $this->encodedVersion;
         if ($inputBody !== '') {
             $body .= '&' . $inputBody;
         }
@@ -159,26 +172,7 @@ abstract class AbstractQueryProtocol implements ProtocolInterface
         Endpoint $endpoint
     ): TransportRequestInterface
     {
-        $request = HttpTransportRequest::expect($request);
-        $httpRequest = $request->request;
-        $endpointUri = new Uri($endpoint->url);
-        $requestUri = $httpRequest->getUri();
-        $endpointPath = $endpointUri->getPath();
-        $path = $endpointPath !== '' && $endpointPath !== '/'
-            ? \rtrim($endpointPath, '/') . $requestUri->getPath()
-            : $requestUri->getPath();
-
-        return $request
-            ->withRequest(
-                $httpRequest->withUri(
-                    $endpointUri
-                        ->withPath($path)
-                        ->withQuery($requestUri->getQuery())
-                        ->withFragment('')
-                        ->withUserInfo('')
-                )
-            )
-            ->withEndpointHeaders($endpoint);
+        return ServiceEndpoint::apply($request, $endpoint);
     }
 
     public function deserializeResponse(
@@ -194,18 +188,30 @@ abstract class AbstractQueryProtocol implements ProtocolInterface
             );
         }
 
-        $schema = $operation->getOutputSchema()->resolveTarget();
-        $members = $this->responseCodec->createMembersBuffer($schema);
-        if ($members !== [] && self::hasBody($response)) {
+        [$wrappers, $schema, $members] = $this->outputByOperation[
+            $operation->getRuntimeIdentity()
+        ] ??= $this->resolveOutput($operation);
+        if ($members !== [] && ResponseBody::hasContent($response)) {
             $this->responseCodec
-                ->createDeserializer(
-                    $response->getBody(),
-                    $this->responseWrappers($operation)
-                )
+                ->createDeserializer($response->getBody(), $wrappers)
                 ->deserialize($schema, $members);
         }
 
         return $operation->createOutput($members);
+    }
+
+    /**
+     * @return array{0: list<string>, 1: Schema, 2: array<int, mixed>}
+     */
+    private function resolveOutput(OperationInterface $operation): array
+    {
+        $schema = $operation->getOutputSchema()->resolveTarget();
+
+        return [
+            $this->responseWrappers($operation),
+            $schema,
+            $this->responseCodec->createMembersBuffer($schema)
+        ];
     }
 
     /**
@@ -218,15 +224,5 @@ abstract class AbstractQueryProtocol implements ProtocolInterface
         return $target !== null && $target !== ''
             ? $target
             : $operation->getName();
-    }
-
-    private static function hasBody(ResponseInterface $response): bool
-    {
-        $contentLength = $response->getHeaderLine('Content-Length');
-        if ($contentLength !== '') {
-            return (int) $contentLength !== 0;
-        }
-
-        return $response->getBody()->getSize() !== 0;
     }
 }

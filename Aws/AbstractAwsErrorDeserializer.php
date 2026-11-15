@@ -12,6 +12,7 @@ namespace Smithy\Protocol\Aws;
 use Psr\Http\Message\ResponseInterface;
 use Smithy\Core\Exception\ApiException;
 use Smithy\Core\Shape\OperationInterface;
+use Smithy\Http\Message\Response;
 use Smithy\Protocol\HttpErrorDeserializer;
 
 /**
@@ -28,13 +29,6 @@ abstract class AbstractAwsErrorDeserializer extends HttpErrorDeserializer
         ?\Throwable $previous = null
     ): \Throwable
     {
-        $statusCode = $response->getStatusCode();
-        if ($message === '') {
-            $message = $discriminator !== null && $discriminator !== ''
-                ? "HTTP {$statusCode}: {$discriminator}"
-                : "HTTP {$statusCode}";
-        }
-
         $errorClass = $operation->getServiceExceptionClass();
         if ($errorClass === ApiException::class) {
             $errorClass = AwsProtocolException::class;
@@ -51,12 +45,12 @@ abstract class AbstractAwsErrorDeserializer extends HttpErrorDeserializer
         }
 
         return new $errorClass(
-            message: $message,
+            message: self::defaultMessage($response, $discriminator, $message),
             fault: $this->resolveFault($response),
             previous: $previous,
             awsErrorCode: $discriminator,
             requestId: $requestId,
-            httpStatusCode: $statusCode
+            httpStatusCode: $response->getStatusCode()
         );
     }
 
@@ -67,6 +61,10 @@ abstract class AbstractAwsErrorDeserializer extends HttpErrorDeserializer
         ResponseInterface $response
     ): array
     {
+        if ($response instanceof Response) {
+            return $response->getRawHeaders();
+        }
+
         $normalized = [];
         foreach ($response->getHeaders() as $name => $values) {
             $normalized[\strtolower($name)] = [

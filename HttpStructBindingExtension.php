@@ -33,12 +33,6 @@ final class HttpStructBindingExtension
      */
     public function __construct(
         /**
-         * Flat routing table: memberIndex => ROUTE_* constant.
-         *
-         * @var array<int, int>
-         */
-        public readonly array $memberRoutes = [],
-        /**
          * Fused per-member write table.
          *
          * Entries are `[route, target]`, with an optional third slot set to
@@ -49,8 +43,6 @@ final class HttpStructBindingExtension
          * @var array<int, array{0: int, 1: ?string, 2?: true}>
          */
         public readonly array $writeInfo = [],
-        /** @var array<int, string> memberIndex => lowercase header name */
-        public readonly array $headerMembers = [],
         /**
          * Explicit `@httpHeader` wire names, keyed by lowercase name.
          *
@@ -60,14 +52,6 @@ final class HttpStructBindingExtension
          * @var array<string, true>
          */
         public readonly array $headerWireNames = [],
-        /**
-         * URL-encoded `@httpQuery` member names, keyed by member index.
-         *
-         * @var array<int, string>
-         */
-        public readonly array $queryMembers = [],
-        /** @var array<int, string> memberIndex => lowercase prefix string */
-        public readonly array $prefixHeaderMembers = [],
         /**
          * Raw `@httpQuery` wire names used by `@httpQueryParams`.
          *
@@ -92,14 +76,6 @@ final class HttpStructBindingExtension
          * @var array<int, int>
          */
         public readonly array $requestTimestampKinds = [],
-        /**
-         * memberIndex of the input member carrying `@idempotencyToken`, or
-         * null. The protocol layer reads this and, when the caller did not
-         * supply a value, generates a UUID-v4 and pushes it into the
-         * matching binding bucket before invoking `serializeMembers()`.
-         */
-        public readonly ?int $idempotencyTokenMemberIndex = null,
-
         /**
          * Response header lookup entries, keyed by lowercase header name.
          *

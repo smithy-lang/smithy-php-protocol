@@ -48,19 +48,14 @@ final class HttpStructBindingExtensionProvider
             return null;
         }
 
-        $memberRoutes = [];
         $writeInfo = [];
-        $headerMembers = [];
         $headerWireNames = [];
-        $queryMembers = [];
-        $prefixHeaderMembers = [];
         $httpQueryNames = [];
         $bodyMemberIndices = [];
         $responseBodyMemberIndices = [];
         $payloadSchema = null;
         $payloadMediaType = null;
         $requestTimestampKinds = [];
-        $idempotencyTokenMemberIndex = null;
 
         $responseHeaders = [];
         $prefixHeaderDeserMembers = [];
@@ -73,18 +68,12 @@ final class HttpStructBindingExtensionProvider
         foreach ($schema->getMembers() as $member) {
             $idx = $member->memberIndex;
 
-            if ($member->hasTrait(Schema::T_IDEMPOTENCY_TOKEN)) {
-                $idempotencyTokenMemberIndex = $idx;
-            }
-
             if ($member->hasTrait(Schema::T_HTTP_HEADER)) {
                 $rawHeader = $member->getTrait(Schema::T_HTTP_HEADER);
                 HttpMessageValidator::validateHeaderName($rawHeader);
                 $lowerName = \strtolower($rawHeader);
 
-                $headerMembers[$idx] = $lowerName;
                 $headerWireNames[$lowerName] = true;
-                $memberRoutes[$idx] = HttpStructBindingExtension::ROUTE_HEADER;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_HEADER,
                     $lowerName
@@ -156,9 +145,7 @@ final class HttpStructBindingExtensionProvider
             } elseif ($member->hasTrait(Schema::T_HTTP_QUERY)) {
                 $queryName = $member->getTrait(Schema::T_HTTP_QUERY);
                 $encodedName = \rawurlencode($queryName);
-                $queryMembers[$idx] = $encodedName;
                 $httpQueryNames[$queryName] = true;
-                $memberRoutes[$idx] = HttpStructBindingExtension::ROUTE_QUERY;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_QUERY,
                     $encodedName
@@ -187,8 +174,6 @@ final class HttpStructBindingExtensionProvider
                     }
                 }
             } elseif ($member->hasTrait(Schema::T_HTTP_QUERY_PARAMS)) {
-                $memberRoutes[$idx] =
-                    HttpStructBindingExtension::ROUTE_QUERY_PARAMS;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_QUERY_PARAMS,
                     null
@@ -200,19 +185,15 @@ final class HttpStructBindingExtensionProvider
                     HttpMessageValidator::validateHeaderName($prefix);
                 }
                 $lowerPrefix = \strtolower($prefix);
-                $prefixHeaderMembers[$idx] = $lowerPrefix;
                 $prefixHeaderDeserMembers[$idx] = [
                     $lowerPrefix,
                     \strlen($prefix)
                 ];
-                $memberRoutes[$idx] =
-                    HttpStructBindingExtension::ROUTE_PREFIX_HEADERS;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_PREFIX_HEADERS,
                     $lowerPrefix
                 ];
             } elseif ($member->hasTrait(Schema::T_HTTP_LABEL)) {
-                $memberRoutes[$idx] = HttpStructBindingExtension::ROUTE_LABEL;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_LABEL,
                     null
@@ -226,7 +207,6 @@ final class HttpStructBindingExtensionProvider
                     $requestTimestampKinds[$idx] = $format->value;
                 }
             } elseif ($member->hasTrait(Schema::T_HTTP_PAYLOAD)) {
-                $memberRoutes[$idx] = HttpStructBindingExtension::ROUTE_PAYLOAD;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_PAYLOAD,
                     null
@@ -235,8 +215,6 @@ final class HttpStructBindingExtensionProvider
                 $payloadMemberIndex = $idx;
                 $payloadMediaType = $member->getTrait(Schema::T_MEDIA_TYPE);
             } elseif ($member->hasTrait(Schema::T_HTTP_RESPONSE_CODE)) {
-                $memberRoutes[$idx] =
-                    HttpStructBindingExtension::ROUTE_RESPONSE_CODE;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_BODY_MEMBER,
                     null
@@ -246,8 +224,6 @@ final class HttpStructBindingExtensionProvider
             } else {
                 $bodyMemberIndices[] = $idx;
                 $responseBodyMemberIndices[] = $idx;
-                $memberRoutes[$idx] =
-                    HttpStructBindingExtension::ROUTE_BODY_MEMBER;
                 $writeInfo[$idx] = [
                     HttpStructBindingExtension::ROUTE_BODY_MEMBER,
                     null
@@ -256,12 +232,8 @@ final class HttpStructBindingExtensionProvider
         }
 
         return new HttpStructBindingExtension(
-            memberRoutes: $memberRoutes,
             writeInfo: $writeInfo,
-            headerMembers: $headerMembers,
             headerWireNames: $headerWireNames,
-            queryMembers: $queryMembers,
-            prefixHeaderMembers: $prefixHeaderMembers,
             httpQueryNames: $httpQueryNames,
             bodyMemberIndices: $bodyMemberIndices,
             bodySchema: $bodyMemberIndices !== []
@@ -270,7 +242,6 @@ final class HttpStructBindingExtensionProvider
             payloadSchema: $payloadSchema,
             payloadMediaType: $payloadMediaType,
             requestTimestampKinds: $requestTimestampKinds,
-            idempotencyTokenMemberIndex: $idempotencyTokenMemberIndex,
             responseHeaders: $responseHeaders,
             prefixHeaderDeserMembers: $prefixHeaderDeserMembers,
             responseCodeMemberIndex: $responseCodeMemberIndex,
