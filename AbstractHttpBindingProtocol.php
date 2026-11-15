@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Smithy\Protocol;
 
+use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Smithy\Core\Endpoint\Endpoint;
 use Smithy\Core\Transport\{
@@ -26,6 +27,7 @@ use Smithy\Http\Message\{
     HttpTransportResponse,
     Request,
     RequestStreamInterface,
+    ResponseInterface,
     Uri
 };
 use Smithy\Protocol\Utils\ComponentUri;
@@ -255,7 +257,9 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
             $deserializer = new HttpBindingDeserializer(
                 $this->codec,
                 $bindingInfo,
-                $response->getRawHeaders(),
+                $response instanceof ResponseInterface
+                    ? $response->getRawHeaders()
+                    : self::normalizeResponseHeaders($response),
                 $response->getBody(),
                 $statusCode
             );
@@ -264,5 +268,23 @@ abstract class AbstractHttpBindingProtocol implements ProtocolInterface
         }
 
         return $operation->createOutput($members);
+    }
+
+    /**
+     * Normalize headers from a PSR-7 response that is not a Smithy response.
+     *
+     * @return array<string, array{0: string, 1: list<string>}>
+     */
+    private static function normalizeResponseHeaders(
+        PsrResponseInterface $response
+    ): array
+    {
+        $headers = [];
+        foreach ($response->getHeaders() as $name => $values) {
+            $name = (string) $name;
+            $headers[\strtolower($name)] = [$name, \array_values($values)];
+        }
+
+        return $headers;
     }
 }
