@@ -4,8 +4,6 @@
     "type": "library",
     "license": "Apache-2.0",
     "require": {
-        "ext-libxml": "*",
-        "ext-simplexml": "*",
         "php": ">=8.2",
         "psr/http-message": "^2.0",
         "smithy/codec": "self.version",
