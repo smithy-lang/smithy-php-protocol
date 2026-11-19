@@ -78,9 +78,16 @@ abstract class HttpErrorDeserializer
             if ($errorClass !== null
                 && !\method_exists($errorClass, 'fromMembers')
             ) {
-                return new $errorClass(
+                return $this->decorateModeledError(
+                    new $errorClass(
+                        $message,
+                        $this->resolveFault($response)
+                    ),
+                    $operation,
+                    $response,
+                    $discriminator,
                     $message,
-                    $this->resolveFault($response)
+                    $requestId
                 );
             }
 
@@ -94,14 +101,21 @@ abstract class HttpErrorDeserializer
                 );
             }
 
-            return $errorClass !== null
-                ? $errorClass::fromMembers($members)
-                : new DocumentException(
-                    $schema,
-                    $members,
-                    $message,
-                    $this->resolveFault($response)
-                );
+            return $this->decorateModeledError(
+                $errorClass !== null
+                    ? $errorClass::fromMembers($members)
+                    : new DocumentException(
+                        $schema,
+                        $members,
+                        $message,
+                        $this->resolveFault($response)
+                    ),
+                $operation,
+                $response,
+                $discriminator,
+                $message,
+                $requestId
+            );
         } catch (\Throwable $e) {
             return $this->createUnmodeledError(
                 $operation,
@@ -149,6 +163,26 @@ abstract class HttpErrorDeserializer
         $this->codec->createDeserializer(
             new StringRequestStream($body)
         )->deserialize($schema, $members);
+    }
+
+    /**
+     * Attach envelope metadata to a deserialized modeled error.
+     *
+     * Called with every modeled error built by {@see deserialize()}. The
+     * base implementation returns `$error` unchanged; protocols override it
+     * to copy the error code, request ID and response metadata onto the
+     * error.
+     */
+    protected function decorateModeledError(
+        \Throwable $error,
+        OperationInterface $operation,
+        ResponseInterface $response,
+        ?string $discriminator,
+        string $message,
+        ?string $requestId
+    ): \Throwable
+    {
+        return $error;
     }
 
     /**
