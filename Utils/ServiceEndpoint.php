@@ -40,7 +40,8 @@ final class ServiceEndpoint
      *
      * The endpoint URL is validated once per distinct URL. The request path
      * and query were already encoded by the protocol and are not filtered
-     * again. The endpoint query and fragment are dropped.
+     * again. The endpoint query and fragment are dropped. A join that
+     * yields an empty path uses the root path `/`.
      */
     public static function apply(
         TransportRequestInterface $request,
@@ -52,13 +53,14 @@ final class ServiceEndpoint
         $url = $endpoint->url;
         $parts = self::$parsed[$url] ?? self::parse($url);
         $requestUri = $httpRequest->getUri();
+        $path = $parts[3] . $requestUri->getPath();
 
         return $request
             ->withRequest($httpRequest->withUri(new ComponentUri(
                 $parts[0],
                 $parts[1],
                 $parts[2],
-                $parts[3] . $requestUri->getPath(),
+                $path !== '' ? $path : '/',
                 $requestUri->getQuery()
             )))
             ->withEndpointHeaders($endpoint);
