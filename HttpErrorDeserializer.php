@@ -104,7 +104,7 @@ abstract class HttpErrorDeserializer
             return $this->decorateModeledError(
                 $errorClass !== null
                     ? $errorClass::fromMembers($members)
-                    : new DocumentException(
+                    : $this->createDocumentError(
                         $schema,
                         $members,
                         $message,
@@ -163,6 +163,21 @@ abstract class HttpErrorDeserializer
         $this->codec->createDeserializer(
             new StringRequestStream($body)
         )->deserialize($schema, $members);
+    }
+
+    /**
+     * Create the schema-backed exception for a modeled error without a class.
+     *
+     * @param array<int, mixed> $members Positional member values.
+     */
+    protected function createDocumentError(
+        Schema $schema,
+        array $members,
+        string $message,
+        ErrorFault $fault
+    ): \Throwable
+    {
+        return new DocumentException($schema, $members, $message, $fault);
     }
 
     /**
