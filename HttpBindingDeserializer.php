@@ -507,7 +507,8 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
         array $values,
         ?string $class,
         bool $isIntEnum
-    ): array {
+    ): array
+    {
         $items = \count($values) > 1 ? $values : \explode(',', $values[0]);
         $result = [];
         if ($isIntEnum) {
