@@ -2,7 +2,12 @@
     "name": "smithy/protocol",
     "description": "Converts Smithy operations and shapes to HTTP requests and responses.",
     "type": "library",
+    "homepage": "https://github.com/smithy-lang/smithy-php",
     "license": "Apache-2.0",
+    "support": {
+        "issues": "https://github.com/smithy-lang/smithy-php/issues",
+        "source": "https://github.com/smithy-lang/smithy-php"
+    },
     "require": {
         "php": ">=8.2",
         "psr/http-message": "^2.0",
