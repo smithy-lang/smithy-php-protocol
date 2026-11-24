@@ -90,7 +90,7 @@ The AWS protocols (`Smithy\Protocol\Aws`) live in `smithy/protocol-aws`.
 
 ## Design
 
-See [Protocol Design](../../docs/design/protocol/protocol-design.md).
+See [Protocol Design](https://github.com/smithy-lang/smithy-php/blob/main/docs/design/protocol/protocol-design.md).
 
 ## Contributing
 
