@@ -617,6 +617,27 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     }
 
     /**
+     * Return the encoded request body and reset the serializer for reuse.
+     *
+     * Read the path, query string, and headers first: this call clears them.
+     * A stream payload is read into a string; use {@see serializeBody()} to
+     * keep the stream.
+     */
+    public function flush(): string
+    {
+        $body = $this->serializeBody();
+
+        $this->headers = [];
+        $this->queryString = '';
+        $this->labels = [];
+        $this->payload = null;
+        $this->hasPayload = false;
+        $this->codecSerializer?->beginStruct($this->bindingInfo->bodySchema, 0);
+
+        return \is_string($body) ? $body : (string) $body;
+    }
+
+    /**
      * Payload-derived content-type, or null when the protocol default applies.
      *
      * Priority: `@mediaType`, then payload type, then null.
