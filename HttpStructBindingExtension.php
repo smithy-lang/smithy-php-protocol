@@ -16,6 +16,9 @@ use Smithy\Core\Serde\TimestampFormat;
  * Carry precomputed HTTP binding metadata for a structure or union schema.
  *
  * @internal Runtime metadata attached to HTTP-bound structure schemas.
+ *
+ * @phpstan-type ResponseHeaderBinding array{0: 0, 1: int, 2: int, 3?: true|string|null}
+ *     |array{0: 1, 1: int, 2: Schema, 3: int, 4: ?string}
  */
 final class HttpStructBindingExtension
 {
@@ -80,10 +83,11 @@ final class HttpStructBindingExtension
          * Response header lookup entries, keyed by lowercase header name.
          *
          * Scalar entries are `[0, memberIndex, ShapeType-int]`, with an
-         * optional target class in slot 3 for enum and intEnum members.
+         * optional target class in slot 3 for enum and intEnum members, or
+         * `true` there for `@mediaType` strings.
          * List entries are `[1, memberIndex, Schema, listItemType-int]`.
          *
-         * @var array<string, array<int, mixed>>
+         * @var array<string, ResponseHeaderBinding>
          */
         public readonly array $responseHeaders = [],
         /**

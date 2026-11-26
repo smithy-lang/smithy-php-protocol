@@ -22,6 +22,8 @@ use Smithy\Core\Shape\Document\StructDocument;
  * Deserialize HTTP-bound response data into positional shape members.
  *
  * @internal Runtime deserializer for HTTP binding protocols.
+ *
+ * @phpstan-import-type ResponseHeaderBinding from HttpStructBindingExtension
  */
 final class HttpBindingDeserializer implements ShapeDeserializerInterface
 {
@@ -44,7 +46,7 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
         'x-forwarded-for' => true
     ];
 
-    /** @var array<string, array<int, mixed>> */
+    /** @var array<string, ResponseHeaderBinding> */
     private readonly array $headerBindingLookup;
     /**
      * Headers keyed by lowercase name.
@@ -109,7 +111,7 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
                         break;
                     case ShapeType::Enum->value:
                         $class = $binding[3] ?? null;
-                        $members[$idx] = $class !== null
+                        $members[$idx] = \is_string($class)
                             ? $class::fromValue($entry[1][0])
                             : $entry[1][0];
                         break;
@@ -122,7 +124,7 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
                     case ShapeType::IntEnum->value:
                         $class = $binding[3] ?? null;
                         $intValue = (int) $entry[1][0];
-                        $members[$idx] = $class !== null
+                        $members[$idx] = \is_string($class)
                             ? $class::fromValue($intValue)
                             : $intValue;
                         break;
