@@ -682,6 +682,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         return $this->headers;
     }
 
+    /**
+     * @param array<mixed> $list
+     */
     private function formatListHeader(array $list, int $idx, int $memberType): string
     {
         $s = '';
@@ -796,6 +799,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         );
     }
 
+    /**
+     * @param array<mixed> $list
+     */
     private function serializeListQuery(
         array $list,
         string $name,
@@ -907,6 +913,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         return $s;
     }
 
+    /**
+     * @param array<mixed> $map
+     */
     private function serializePrefixHeaders(array $map, string $prefix): void
     {
         foreach ($map as $k => $v) {
@@ -922,6 +931,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         }
     }
 
+    /**
+     * @param array<mixed> $map
+     */
     private function serializeQueryParams(array $map): void
     {
         foreach ($map as $k => $v) {
