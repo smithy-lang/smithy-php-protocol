@@ -376,7 +376,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     public function serializeList(Schema $schema, array $list, int $idx): void
     {
         $w = $this->writeInfo[$idx];
-        $memberType = $schema->getListMember()?->type
+        $memberType = $schema->getListMember()->type
             ?? ShapeType::Document->value;
         switch ($w[0]) {
             case HttpStructBindingExtension::ROUTE_HEADER:

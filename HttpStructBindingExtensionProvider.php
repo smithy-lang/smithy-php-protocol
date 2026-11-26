@@ -81,7 +81,7 @@ final class HttpStructBindingExtensionProvider
 
                 if ($member->type === ShapeType::List_->value) {
                     $listMember = $member->getListMember();
-                    $listItemType = $listMember?->type
+                    $listItemType = $listMember->type
                         ?? ShapeType::String_->value;
                     $listItemClass = (
                         $listItemType === ShapeType::Enum->value
