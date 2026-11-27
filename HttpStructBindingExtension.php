@@ -18,7 +18,7 @@ use Smithy\Core\Serde\TimestampFormat;
  * @internal Runtime metadata attached to HTTP-bound structure schemas.
  *
  * @phpstan-type ResponseHeaderBinding array{0: 0, 1: int, 2: int, 3?: true|string|null}
- *     |array{0: 1, 1: int, 2: Schema, 3: int, 4: ?string}
+ *     |array{0: 1, 1: int, 2: Schema, 3: int, 4: class-string|null}
  */
 final class HttpStructBindingExtension
 {

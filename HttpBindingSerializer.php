@@ -878,7 +878,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * DateTime, each item is rendered with one gmdate call. EpochSeconds uses
      * string conversion directly.
      *
-     * @param list<float> $list
+     * @param array<mixed> $list Epoch-second values from the list member.
      */
     private static function formatTimestampList(array $list, int $kind): string
     {

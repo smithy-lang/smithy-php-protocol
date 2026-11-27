@@ -65,8 +65,7 @@ final class HttpStructBindingExtensionProvider
         $scalarTimestampFormats = [];
         $listTimestampKinds = [];
 
-        foreach ($schema->getMembers() as $member) {
-            $idx = $member->memberIndex;
+        foreach ($schema->getMembersByIndex() as $idx => $member) {
 
             if ($member->hasTrait(Schema::T_HTTP_HEADER)) {
                 $rawHeader = $member->getTrait(Schema::T_HTTP_HEADER);
@@ -255,6 +254,9 @@ final class HttpStructBindingExtensionProvider
         );
     }
 
+    /**
+     * @return class-string|null
+     */
     private static function resolveEnumTargetClass(?Schema $schema): ?string
     {
         if ($schema === null) {

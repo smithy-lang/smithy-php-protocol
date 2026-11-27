@@ -78,11 +78,18 @@ abstract class HttpErrorDeserializer
             if ($errorClass !== null
                 && !\method_exists($errorClass, 'fromMembers')
             ) {
+                $error = new $errorClass(
+                    $message,
+                    $this->resolveFault($response)
+                );
+                if (!$error instanceof \Throwable) {
+                    throw new \UnexpectedValueException(
+                        "Modeled error class {$errorClass} is not a Throwable."
+                    );
+                }
+
                 return $this->decorateModeledError(
-                    new $errorClass(
-                        $message,
-                        $this->resolveFault($response)
-                    ),
+                    $error,
                     $operation,
                     $response,
                     $discriminator,
