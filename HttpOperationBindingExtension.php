@@ -28,10 +28,11 @@ final class HttpOperationBindingExtension
         /**
          * Precomputed path segments for O(1) URI resolution.
          *
-         * Each segment is `[?string $literal, ?int $labelIndex, bool $greedy]`.
-         * Use null for fully literal paths.
+         * Each segment is a literal `[string $literal, null, false]` or a
+         * label `[null, int $labelIndex, bool $greedy]`. Use null for fully
+         * literal paths.
          *
-         * @var list<array{?string, ?int, bool}>|null
+         * @var list<array{string, null, false}|array{null, int, bool}>|null
          */
         public readonly ?array $pathSegments = null,
         /**

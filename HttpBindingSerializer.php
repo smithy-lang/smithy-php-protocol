@@ -25,6 +25,8 @@ use Smithy\Http\Message\HttpMessageValidator;
  * Serialize structure members into HTTP binding locations.
  *
  * @internal Runtime serializer for HTTP binding protocols.
+ *
+ * @phpstan-import-type WriteInfoEntry from HttpStructBindingExtension
  */
 final class HttpBindingSerializer implements ShapeSerializerInterface
 {
@@ -61,7 +63,7 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      * carrying `@mediaType` append a third slot set to `true`, so the string
      * hot path can base64-encode without a second metadata probe.
      *
-     * @var array<int, array{0: int, 1: ?string, 2?: true}>
+     * @var array<int, WriteInfoEntry>
      */
     private readonly array $writeInfo;
     /**
@@ -100,7 +102,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $this->httpQueryNames = $bindingInfo->httpQueryNames;
         $this->headerWireNames = $bindingInfo->headerWireNames;
 
-        if ($bindingInfo->bodyMemberIndices !== []) {
+        // The provider sets a body schema exactly when there are body members.
+        if ($bindingInfo->bodySchema !== null) {
             $this->codecSerializer = $this->codec->createSerializer();
             $this->codecSerializer->beginStruct($bindingInfo->bodySchema, 0);
         }
@@ -125,7 +128,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeBoolean($schema, $value, $idx);
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeBoolean($schema, $value, $idx);
 
                 return;
         }
@@ -149,7 +153,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeInteger($schema, $value, $idx);
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeInteger($schema, $value, $idx);
 
                 return;
         }
@@ -173,7 +178,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeFloat($schema, $value, $idx);
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeFloat($schema, $value, $idx);
 
                 return;
         }
@@ -203,11 +209,12 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeBigInteger(
-                    $schema,
-                    $value,
-                    $idx
-                );
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeBigInteger(
+                        $schema,
+                        $value,
+                        $idx
+                    );
 
                 return;
         }
@@ -235,11 +242,12 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeBigDecimal(
-                    $schema,
-                    $value,
-                    $idx
-                );
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeBigDecimal(
+                        $schema,
+                        $value,
+                        $idx
+                    );
 
                 return;
         }
@@ -273,7 +281,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeString($schema, $value, $idx);
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeString($schema, $value, $idx);
 
                 return;
         }
@@ -303,11 +312,12 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
                 if (!$value instanceof StreamInterface) {
-                    $this->codecSerializer->serializeBlob(
-                        $schema,
-                        $value,
-                        $idx
-                    );
+                    ($this->codecSerializer ?? throw self::missingBodySerializer())
+                        ->serializeBlob(
+                            $schema,
+                            $value,
+                            $idx
+                        );
 
                     return;
                 }
@@ -329,11 +339,12 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         $w = $this->writeInfo[$idx];
         if ($w[0] === HttpStructBindingExtension::ROUTE_BODY_MEMBER) {
-            $this->codecSerializer->serializeTimestamp(
-                $schema,
-                $value,
-                $idx
-            );
+            ($this->codecSerializer ?? throw self::missingBodySerializer())
+                ->serializeTimestamp(
+                    $schema,
+                    $value,
+                    $idx
+                );
 
             return;
         }
@@ -397,7 +408,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
 
                 return;
             case HttpStructBindingExtension::ROUTE_BODY_MEMBER:
-                $this->codecSerializer->serializeList($schema, $list, $idx);
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeList($schema, $list, $idx);
 
                 return;
         }
@@ -409,7 +421,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $w = $this->writeInfo[$idx];
         match ($w[0]) {
             HttpStructBindingExtension::ROUTE_BODY_MEMBER =>
-                $this->codecSerializer->serializeMap($schema, $map, $idx),
+                ($this->codecSerializer ?? throw self::missingBodySerializer())
+                    ->serializeMap($schema, $map, $idx),
             HttpStructBindingExtension::ROUTE_PREFIX_HEADERS =>
                 $this->serializePrefixHeaders($map, $w[1]),
             HttpStructBindingExtension::ROUTE_QUERY_PARAMS =>
@@ -427,7 +440,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         $w = $this->writeInfo[$idx];
         if ($w[0] === HttpStructBindingExtension::ROUTE_BODY_MEMBER) {
-            $this->codecSerializer->serializeStruct($schema, $struct, $idx);
+            ($this->codecSerializer ?? throw self::missingBodySerializer())
+                ->serializeStruct($schema, $struct, $idx);
 
             return;
         }
@@ -467,7 +481,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         $w = $this->writeInfo[$idx];
         if ($w[0] === HttpStructBindingExtension::ROUTE_BODY_MEMBER) {
-            $this->codecSerializer->serializeUnion($schema, $union, $idx);
+            ($this->codecSerializer ?? throw self::missingBodySerializer())
+                ->serializeUnion($schema, $union, $idx);
 
             return;
         }
@@ -487,7 +502,8 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     {
         $w = $this->writeInfo[$idx];
         if ($w[0] === HttpStructBindingExtension::ROUTE_BODY_MEMBER) {
-            $this->codecSerializer->serializeDocument($schema, $value, $idx);
+            ($this->codecSerializer ?? throw self::missingBodySerializer())
+                ->serializeDocument($schema, $value, $idx);
 
             return;
         }
@@ -499,10 +515,20 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
     }
 
     /**
+     * Build the error for a body member write on a binding without a body.
+     */
+    private static function missingBodySerializer(): \LogicException
+    {
+        return new \LogicException(
+            'A body member was written, but the binding has no body schema.'
+        );
+    }
+
+    /**
      * Build the resolved path string from path segments and captured labels.
      *
-     * @param list<array{?string, ?int, bool}>|null $segments Precomputed
-     *     path segments.
+     * @param list<array{string, null, false}|array{null, int, bool}>|null $segments
+     *     Precomputed literal and label path segments.
      * @param string $defaultPath Fallback path if no segments or no labels
      *
      * @return string The resolved path
@@ -632,7 +658,9 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
         $this->labels = [];
         $this->payload = null;
         $this->hasPayload = false;
-        $this->codecSerializer?->beginStruct($this->bindingInfo->bodySchema, 0);
+        if ($this->bindingInfo->bodySchema !== null) {
+            $this->codecSerializer?->beginStruct($this->bindingInfo->bodySchema, 0);
+        }
 
         return \is_string($body) ? $body : (string) $body;
     }
@@ -966,7 +994,11 @@ final class HttpBindingSerializer implements ShapeSerializerInterface
      */
     private function buildPayload(mixed $value): string|StreamInterface
     {
-        $payloadSchema = $this->bindingInfo->payloadSchema;
+        // Only a payload member sets the payload, so its schema is present.
+        $payloadSchema = $this->bindingInfo->payloadSchema
+            ?? throw new \LogicException(
+                'A payload was written, but the binding has no payload schema.'
+            );
         $type = $payloadSchema->type;
         switch ($type) {
             case ShapeType::Structure->value:

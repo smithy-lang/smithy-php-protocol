@@ -198,7 +198,11 @@ final class HttpBindingDeserializer implements ShapeDeserializerInterface
 
         if ($bindingInfo->payloadMemberIndex !== null) {
             $idx = $bindingInfo->payloadMemberIndex;
-            $payloadSchema = $bindingInfo->payloadSchema;
+            // The provider sets the payload index and schema together.
+            $payloadSchema = $bindingInfo->payloadSchema
+                ?? throw new \LogicException(
+                    'The binding has a payload index but no payload schema.'
+                );
             switch ($payloadSchema->type) {
                 case ShapeType::Blob->value:
                     $members[$idx] = $this->body;

@@ -19,6 +19,9 @@ use Smithy\Core\Serde\TimestampFormat;
  *
  * @phpstan-type ResponseHeaderBinding array{0: 0, 1: int, 2: int, 3?: true|string|null}
  *     |array{0: 1, 1: int, 2: Schema, 3: int, 4: class-string|null}
+ * @phpstan-type WriteInfoEntry array{0: 0, 1: string, 2?: true}
+ *     |array{0: 1|5, 1: string}
+ *     |array{0: 2|3|4|6, 1: null}
  */
 final class HttpStructBindingExtension
 {
@@ -43,7 +46,7 @@ final class HttpStructBindingExtension
          * The target value is the lowercase header name, URL-encoded query
          * name, lowercase prefix string, or null for untargeted routes.
          *
-         * @var array<int, array{0: int, 1: ?string, 2?: true}>
+         * @var array<int, WriteInfoEntry>
          */
         public readonly array $writeInfo = [],
         /**

@@ -20,6 +20,8 @@ use Smithy\Http\Message\HttpMessageValidator;
  * Provide HTTP binding metadata for structure and union schemas.
  *
  * @internal Runtime metadata provider for HTTP-bound structure schemas.
+ *
+ * @phpstan-import-type WriteInfoEntry from HttpStructBindingExtension
  */
 final class HttpStructBindingExtensionProvider
     implements SchemaExtensionProviderInterface
@@ -73,10 +75,10 @@ final class HttpStructBindingExtensionProvider
                 $lowerName = \strtolower($rawHeader);
 
                 $headerWireNames[$lowerName] = true;
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_HEADER,
                     $lowerName
-                ];
+                ]);
 
                 if ($member->type === ShapeType::List_->value) {
                     $listMember = $member->getListMember();
@@ -115,11 +117,11 @@ final class HttpStructBindingExtensionProvider
                             $member->type,
                             true
                         ];
-                        $writeInfo[$idx] = [
+                        self::addWriteInfo($writeInfo, $idx, [
                             HttpStructBindingExtension::ROUTE_HEADER,
                             $lowerName,
                             true
-                        ];
+                        ]);
                     } elseif ($member->type === ShapeType::Enum->value
                         || $member->type === ShapeType::IntEnum->value
                     ) {
@@ -145,10 +147,10 @@ final class HttpStructBindingExtensionProvider
                 $queryName = $member->getTrait(Schema::T_HTTP_QUERY);
                 $encodedName = \rawurlencode($queryName);
                 $httpQueryNames[$queryName] = true;
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_QUERY,
                     $encodedName
-                ];
+                ]);
                 $responseBodyMemberIndices[] = $idx;
 
                 if ($member->type === ShapeType::Timestamp->value) {
@@ -173,10 +175,10 @@ final class HttpStructBindingExtensionProvider
                     }
                 }
             } elseif ($member->hasTrait(Schema::T_HTTP_QUERY_PARAMS)) {
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_QUERY_PARAMS,
                     null
-                ];
+                ]);
                 $responseBodyMemberIndices[] = $idx;
             } elseif ($member->hasTrait(Schema::T_HTTP_PREFIX_HEADERS)) {
                 $prefix = $member->getTrait(Schema::T_HTTP_PREFIX_HEADERS);
@@ -188,15 +190,15 @@ final class HttpStructBindingExtensionProvider
                     $lowerPrefix,
                     \strlen($prefix)
                 ];
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_PREFIX_HEADERS,
                     $lowerPrefix
-                ];
+                ]);
             } elseif ($member->hasTrait(Schema::T_HTTP_LABEL)) {
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_LABEL,
                     null
-                ];
+                ]);
                 $responseBodyMemberIndices[] = $idx;
 
                 if ($member->type === ShapeType::Timestamp->value) {
@@ -206,27 +208,27 @@ final class HttpStructBindingExtensionProvider
                     $requestTimestampKinds[$idx] = $format->value;
                 }
             } elseif ($member->hasTrait(Schema::T_HTTP_PAYLOAD)) {
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_PAYLOAD,
                     null
-                ];
+                ]);
                 $payloadSchema = $member;
                 $payloadMemberIndex = $idx;
                 $payloadMediaType = $member->getTrait(Schema::T_MEDIA_TYPE);
             } elseif ($member->hasTrait(Schema::T_HTTP_RESPONSE_CODE)) {
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_BODY_MEMBER,
                     null
-                ];
+                ]);
                 $responseCodeMemberIndex = $idx;
                 $bodyMemberIndices[] = $idx;
             } else {
                 $bodyMemberIndices[] = $idx;
                 $responseBodyMemberIndices[] = $idx;
-                $writeInfo[$idx] = [
+                self::addWriteInfo($writeInfo, $idx, [
                     HttpStructBindingExtension::ROUTE_BODY_MEMBER,
                     null
-                ];
+                ]);
             }
         }
 
@@ -252,6 +254,24 @@ final class HttpStructBindingExtensionProvider
             scalarTimestampFormats: $scalarTimestampFormats,
             listTimestampKinds: $listTimestampKinds
         );
+    }
+
+    /**
+     * Record one member's write route.
+     *
+     * Each call keeps the route-to-target pairing that the serializer relies on.
+     *
+     * @param array<int, WriteInfoEntry> $writeInfo
+     * @param WriteInfoEntry $entry
+     * @param-out array<int, WriteInfoEntry> $writeInfo
+     */
+    private static function addWriteInfo(
+        array &$writeInfo,
+        int $idx,
+        array $entry
+    ): void
+    {
+        $writeInfo[$idx] = $entry;
     }
 
     /**
